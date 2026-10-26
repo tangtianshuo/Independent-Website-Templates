@@ -2,3 +2,4 @@ node_modules/
 .npm-cache/
 .nuxt/
 .output/
+.env.release.local

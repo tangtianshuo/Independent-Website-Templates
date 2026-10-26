@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
     workspaceId: config.workspaceId,
     siteId: config.siteId,
     credential: config.siteCredential,
+    releaseId: config.releaseId || process.env.RELEASE_ID,
     path,
   });
   if (!page) throw createError({ statusCode: 404 });

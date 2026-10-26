@@ -81,10 +81,19 @@ test('reserved API paths cannot be published as pages or redirect sources', () =
 
 test('gateway lookup fixes site identity and credentials on server', async () => {
   const result = await fetchPublishedPage({ gatewayUrl: 'http://gateway.test/', workspaceId: 'workspace-1', siteId: 'site-1', credential: 'site-secret', path: '/', fetcher: async (url, options) => {
-    assert.equal(url.href, 'http://gateway.test/sites/site-1/published-release');
+    assert.equal(url.href, 'http://gateway.test/api/v1/sites/site-1/published-release');
     assert.deepEqual(options.headers, { authorization: 'Bearer site-secret' });
     return { ok: true, json: async () => envelope() };
   } });
   assert.equal(result.path, '/');
   assert.equal(await fetchPublishedPage({ gatewayUrl: 'http://gateway.test', workspaceId: 'workspace-1', siteId: 'site-1', credential: 'site-secret', path: '//evil.test' }), null);
+});
+
+test('candidate gateway lookup includes the pending release ID', async () => {
+  const result = await fetchPublishedPage({ gatewayUrl: 'http://gateway.test', workspaceId: 'workspace-1', siteId: 'site-1', credential: 'candidate-secret', releaseId: 'pending-release', path: '/', fetcher: async (url, options) => {
+    assert.equal(url.href, 'http://gateway.test/api/v1/sites/site-1/published-release?releaseId=pending-release');
+    assert.deepEqual(options.headers, { authorization: 'Bearer candidate-secret' });
+    return { ok: true, json: async () => envelope() };
+  } });
+  assert.equal(result.path, '/');
 });

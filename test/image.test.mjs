@@ -39,7 +39,7 @@ function gateway() {
   const server = createServer((req, res) => {
     requests.push({ url: req.url, authorization: req.headers.authorization });
     res.setHeader('content-type', 'application/json');
-    if (req.url !== `/sites/${siteId}/published-release` || req.headers.authorization !== `Bearer ${credential}`) {
+    if (req.url !== `/api/v1/sites/${siteId}/published-release` || req.headers.authorization !== `Bearer ${credential}`) {
       res.writeHead(403).end('{}');
       return;
     }
@@ -91,7 +91,7 @@ test('standalone image renders only its bound published release via authenticate
     assert.equal((await fetch(`${base}/unpublished`)).status, 404);
     assert.equal((await fetch(`${base}/preview`)).status, 404);
     assert.ok(requests.length >= 4);
-    assert.ok(requests.every((request) => request.url === `/sites/${siteId}/published-release` && request.authorization === `Bearer ${credential}`));
+    assert.ok(requests.every((request) => request.url === `/api/v1/sites/${siteId}/published-release` && request.authorization === `Bearer ${credential}`));
   } finally {
     if (container) await exec('docker', ['stop', container]);
     await new Promise((resolve) => server.close(resolve));

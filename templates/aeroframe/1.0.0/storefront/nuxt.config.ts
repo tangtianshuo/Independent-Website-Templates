@@ -5,5 +5,6 @@ export default defineNuxtConfig({
     workspaceId: '',
     siteId: '',
     siteCredential: '',
+    releaseId: process.env.RELEASE_ID || '',
   },
 });

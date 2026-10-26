@@ -84,9 +84,10 @@ export function publishedPage(response, workspaceId, siteId, path) {
   };
 }
 
-export async function fetchPublishedPage({ gatewayUrl, workspaceId, siteId, credential, path, fetcher = fetch }) {
+export async function fetchPublishedPage({ gatewayUrl, workspaceId, siteId, credential, releaseId, path, fetcher = fetch }) {
   if (!gatewayUrl || !workspaceId || !siteId || !credential || !safePath(path)) return null;
-  const url = new URL(`/sites/${encodeURIComponent(siteId)}/published-release`, gatewayUrl);
+  const url = new URL(`/api/v1/sites/${encodeURIComponent(siteId)}/published-release`, gatewayUrl);
+  if (releaseId) url.searchParams.set('releaseId', releaseId);
   const response = await fetcher(url, { headers: { authorization: `Bearer ${credential}` } });
   if (!response.ok) throw new Error(`Published gateway returned ${response.status}`);
   return publishedPage(await response.json(), workspaceId, siteId, path);
