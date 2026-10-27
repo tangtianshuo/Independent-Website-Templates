@@ -6,21 +6,22 @@ import { promisify } from 'node:util';
 import test from 'node:test';
 
 const exec = promisify(execFile);
-const image = 'local/aeroframe:1.0.0';
+const version = process.env.TEMPLATE_VERSION || '1.0.0';
+const image = process.env.RELEASE_IMAGE || `local/aeroframe:${version}`;
 const siteId = 'published-site';
 const workspaceId = 'published-workspace';
 const credential = 'fixture-site-token';
 const preset = {
-  id: 'aeroframe', version: '1.0.0', name: 'AeroFrame', description: 'Aircraft',
-  theme: { background: '#080d14', foreground: '#f3f6fa', accent: '#4f7dff', muted: '#94a2b6', font: 'Inter' },
+  id: 'aeroframe', version, name: 'AeroFrame', description: 'A mission-ready storefront for drone, robotics, and low-altitude technology brands.',
+  theme: { background: '#080d14', foreground: '#f3f6fa', accent: '#4f7dff', muted: '#182432', font: 'Arial, sans-serif' },
   demo: {
-    brand: 'Flight Works', contactEmail: 'sales@example.test',
-    hero: { title: 'Mission ready airframes', subtitle: 'Field tested platforms.', image: '/assets/hero.png' },
-    collection: { title: 'Our fleet', description: 'Built to work.', image: '/assets/hero.png' },
-    product: { title: 'Scout X1', description: 'Long-range survey platform.', price: '$1,200', image: '/assets/hero.png' },
-    page: { title: 'Our approach', body: 'Engineered for real operations.', image: '/assets/hero.png' },
+    brand: 'AEROWORKS', contactEmail: 'sales@example.com',
+    hero: { title: 'Built for the missions ahead', subtitle: 'Reliable aerial systems for demanding work in the real world.', image: '/assets/hero.png' },
+    collection: { title: 'Aircraft systems', description: 'Field-ready platforms for inspection, mapping, and response teams.', image: '/assets/hero.png' },
+    product: { title: 'Aero X8 industrial platform', description: 'A modular multirotor platform built for inspection, mapping, and rapid deployment.', price: '$8,490', image: '/assets/hero.png' },
+    page: { title: 'Engineering in the field', body: 'We build dependable unmanned systems around the work operators need to complete.', image: '/assets/hero.png' },
   },
-  showcase: { eyebrow: 'OUR SYSTEMS', heroLabel: 'FIELD PROVEN', stats: [{ label: 'Range', value: '80 km' }], products: [], solutions: [], faq: [{ question: 'Can it fly in rain?', answer: 'Yes, with the weather kit.' }] },
+  showcase: { eyebrow: 'UNMANNED SYSTEMS / FIELD PROVEN', heroLabel: 'AERIAL SYSTEMS FOR COMPLEX MISSIONS', stats: [{ value: '25 min', label: 'Rapid deployment' }, { value: '12 kg', label: 'Payload capacity' }, { value: 'IP54', label: 'Weather protection' }], products: [], solutions: [], faq: [{ question: 'Can the aircraft carry custom payloads?', answer: 'Platforms are designed around modular payload integration. Share your sensor, mount, and mission requirements for a compatibility review.' }] },
 };
 const content = (view, title, items = []) => ({ kind: 'preset-page', view, preset, sections: view === 'home' ? ['hero', 'feature'] : view === 'collection' ? ['heading', 'grid'] : view === 'product' ? ['gallery', 'description', 'information'] : ['story'], seo: { title, description: 'Published description' }, items });
 const snapshot = {
@@ -56,8 +57,8 @@ test('standalone image renders only its bound published release via authenticate
   await new Promise((resolve) => server.listen(0, '0.0.0.0', resolve));
   let container;
   try {
-    await exec('docker', ['build', '-f', 'templates/aeroframe/1.0.0/Dockerfile', '-t', image, 'templates/aeroframe/1.0.0'], { timeout: 240000 });
-    const { stdout } = await exec('docker', ['run', '-d', '--rm', '-p', '127.0.0.1::3000', '-e', `NUXT_GATEWAY_URL=http://host.docker.internal:${server.address().port}`, '-e', `NUXT_WORKSPACE_ID=${workspaceId}`, '-e', `NUXT_SITE_ID=${siteId}`, '-e', `NUXT_SITE_CREDENTIAL=${credential}`, image]);
+    if (!process.env.RELEASE_IMAGE) await exec('docker', ['build', '-f', `templates/aeroframe/${version}/Dockerfile`, '-t', image, `templates/aeroframe/${version}`], { timeout: 240000 });
+    const { stdout } = await exec('docker', ['run', '-d', '--rm', '--add-host', 'host.docker.internal:host-gateway', '-p', '127.0.0.1::3000', '-e', `NUXT_GATEWAY_URL=http://host.docker.internal:${server.address().port}`, '-e', `NUXT_WORKSPACE_ID=${workspaceId}`, '-e', `NUXT_SITE_ID=${siteId}`, '-e', `NUXT_SITE_CREDENTIAL=${credential}`, image]);
     container = stdout.trim();
     const { stdout: port } = await exec('docker', ['port', container, '3000/tcp']);
     const base = `http://127.0.0.1:${port.trim().match(/:(\d+)$/)?.[1]}`;
@@ -68,14 +69,14 @@ test('standalone image renders only its bound published release via authenticate
     }
     assert.equal(health?.status, 200);
     assert.equal(await health.text(), 'ok');
-    for (const [path, expected] of [['/', 'Mission ready airframes'], ['/collections', 'Our fleet'], ['/products/scout-x1', 'Scout X1'], ['/pages/about', 'Our approach'], ['/shipping', 'Our approach']]) {
+    for (const [path, expected] of [['/', 'Built for the missions ahead'], ['/collections', 'Aircraft systems'], ['/products/scout-x1', 'Aero X8 industrial platform'], ['/pages/about', 'Engineering in the field'], ['/shipping', 'Engineering in the field']]) {
       const response = await fetch(`${base}${path}?siteId=attacker`, { headers: { Host: 'attacker.test' } });
       assert.equal(response.status, 200, path);
       const html = await response.text();
       assert.ok(html.includes(expected), path);
-      assert.ok(html.includes('Flight Works'), path);
+      assert.ok(html.includes('AEROWORKS'), path);
       assert.ok(!html.includes(credential) && !html.includes('adminOrigin') && !html.includes('cmsInternalOrigin'));
-      if (path === '/') assert.match(html, /<summary[^>]*>Can it fly in rain\?/);
+    if (path === '/') assert.match(html, /<summary[^>]*>Can the aircraft carry custom payloads\?/);
     }
     const old = await fetch(`${base}/pages/old`, { redirect: 'manual' });
     assert.equal(old.status, 308);

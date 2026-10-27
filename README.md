@@ -1,6 +1,6 @@
 # Storefront Templates
 
-独立站模板源码仓库，集中维护模板清单、静态资源和对应的 Storefront 实现。当前包含 `aeroframe/1.0.0` 示例模板。模板按 ID 和版本组织；清单描述 CMS 内容模型、页面路由、资源及兼容版本，Storefront 负责渲染站点。当前仓库可用于本地开发和验证，尚不提供可供 CMS 直接导入的公开模板索引或已发布的容器镜像。
+独立站模板源码仓库，集中维护模板清单、静态资源和对应的 Storefront 实现。包含 AeroFrame 1.0.0 和公开发布源 1.0.1。公开索引由 `registry` 分支的 `registry/index.json` 提供，镜像使用不可变 digest。
 
 ## 环境与验证
 
@@ -12,7 +12,7 @@ npm test
 npm run validate
 ```
 
-`npm run validate` 当前校验 `templates/aeroframe/1.0.0/template.json`。要校验其他模板清单，运行：
+`npm run validate` 校验 1.0.1。要校验固定版本，运行：
 
 ```sh
 node scripts/validate.mjs templates/<id>/<version>/template.json
@@ -48,8 +48,14 @@ test/                                      仓库级测试
 2. 清单中的 `id`、`version` 应与目录一致；`version` 使用 `主版本.次版本.修订版本` 格式。为资源填写真实文件的 SHA-256 校验值和匹配的 MIME 类型。
 3. 在仓库根目录执行 `node scripts/validate.mjs templates/<id>/<version>/template.json`、`npm test`，并在模板的 `storefront/` 目录运行测试与构建。
 
-校验器除 Schema 外还会检查模型与字段引用、页面路由冲突、资源类型、文件路径、图片内容和 SHA-256。仓库根目录的 `npm run validate` 仍固定指向 AeroFrame；新增模板时须显式校验新清单，并按需更新自动化验证范围。
+校验器除 Schema 外还会检查模型与字段引用、页面路由冲突、资源类型、文件路径、图片内容和 SHA-256。`npm run validate:1.0.0` 验证旧版清单，`npm run validate:1.0.1` 验证包含 CMS presentation 字段的发布清单。
 
 ## 发布状态
 
-仓库已有发布记录逻辑及相关测试，但使用的是内存存储接口；目前没有可供外部使用的公开模板索引，也没有自动推送 GHCR 镜像的工作流。请勿将本地验证通过视为模板已发布或可由 CMS 直接导入。
+发布 1.0.1 时，先确保 `registry` 分支已经初始化为 `{ "schemaVersion": 1, "records": [] }`。GitHub Actions 会运行验证与 Storefront 测试/构建，然后构建并推送 GHCR 镜像、生成并验证 GitHub provenance、检查匿名 digest 拉取，最后串行向 `registry` 分支追加不可变记录。
+
+GHCR 新 package 默认可能是私有的。首次运行会在匿名拉取门禁处失败并保留构建 digest；仓库管理员需在 GitHub Packages 将 package `independent-website-templates/aeroframe` 改为 Public，然后重新运行同一 tag 的发布 workflow。确认匿名拉取通过后 workflow 才写入 available 索引。相同版本相同记录可重跑；相同 id/version 的任何身份变化都会失败，不能覆盖旧版本。
+
+首发命令（审核后执行）：`git tag aeroframe-v1.0.1 <reviewed-commit>`，再推送该 tag 触发 workflow。发布前可本地执行 `npm ci && npm test && npm run validate:1.0.0 && npm run validate:1.0.1`，以及 `cd templates/aeroframe/1.0.1/storefront && npm ci && npm test && npm run build`。本地测试不代表远端发布成功。
+
+2026-10-27 的 `npm ci` audit 报告 7 个 high findings，均来自构建依赖链 `listhen`/`nitropack`/`nuxt` 中的 `node-forge` 漏洞 GHSA-86w9-cpqp-85rv；检查时尚无可用的修复版本。生产镜像只复制 Nuxt `.output`，构建产物中不含 `node-forge` 或 `listhen`。后续升级依赖前应重新检查该公告。

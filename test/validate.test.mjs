@@ -13,6 +13,7 @@ const field = (key, type = 'STRING', referenceModel) => ({ key, label: key, type
 const manifest = () => ({
   schemaVersion: 1, id: 'aeroframe', version: '1.0.0', name: 'AeroFrame', description: 'Aircraft',
   compatibility: { cmsSchema: 1, releaseSchema: 1 },
+  presentation: { theme: { background: '#080d14', foreground: '#f3f6fa', accent: '#4f7dff', muted: '#182432', font: 'Arial, sans-serif' }, demo: { brand: 'AEROWORKS', hero: { title: 'Mission', subtitle: 'Ready', image: 'https://example.test/hero.jpg' }, product: { title: 'Drone', price: '$10', image: 'https://example.test/p.jpg', description: 'A product' }, collection: { title: 'Fleet', description: 'Aircraft', image: 'https://example.test/c.jpg' }, page: { title: 'About', body: 'About us', image: 'https://example.test/a.jpg' } } },
   models: [
     { key: 'home', label: 'Home', description: '', singleEntry: true, fields: [field('title'), field('products', 'ENTRY_POINTER', 'product')] },
     { key: 'product', label: 'Products', description: '', singleEntry: false, fields: [field('title')] },
@@ -159,4 +160,13 @@ test('checked-in AeroFrame manifest retains the CMS field specs and page mapping
     ['product', '/products/:slug', 'product', 'product-detail'],
     ['content', '/pages/:slug', 'content-page', 'content-page'],
   ]);
+});
+
+test('requires CMS presentation data for a public template manifest', async (t) => {
+  const root = await fixture(t);
+  const candidate = manifest();
+  candidate.version = '1.0.1';
+  await validateManifest(candidate, root);
+  delete candidate.presentation;
+  await assert.rejects(validateManifest(candidate, root), /presentation/i);
 });

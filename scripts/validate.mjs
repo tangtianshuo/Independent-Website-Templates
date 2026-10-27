@@ -3,9 +3,12 @@ import { lstat, readFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
 
 const schema = JSON.parse(await readFile(new URL('../schema/template.schema.json', import.meta.url), 'utf8'));
-const checkSchema = new Ajv({ allErrors: true }).compile(schema);
+const ajv = new Ajv({ allErrors: true });
+addFormats(ajv);
+const checkSchema = ajv.compile(schema);
 const mimeByExtension = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', avif: 'image/avif' };
 
 function canonical(value) {
@@ -44,6 +47,9 @@ function imageMatches(bytes, mimeType) {
 
 export async function validateManifest(manifest, root) {
   if (!checkSchema(manifest)) throw new Error(`Invalid manifest: ${new Ajv().errorsText(checkSchema.errors)}`);
+  if (!manifest.presentation && !(manifest.id === 'aeroframe' && manifest.version === '1.0.0')) {
+    throw new Error('Invalid manifest: presentation is required for public releases');
+  }
   const models = new Set(manifest.models.map(({ key }) => key));
   unique(manifest.models.map(({ key }) => key), 'model key');
   for (const model of manifest.models) {

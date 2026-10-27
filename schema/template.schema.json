@@ -14,6 +14,27 @@
       "required": ["cmsSchema", "releaseSchema"],
       "properties": { "cmsSchema": { "const": 1 }, "releaseSchema": { "const": 1 } }
     },
+    "presentation": {
+      "type": "object", "additionalProperties": false, "required": ["theme", "demo"],
+      "properties": {
+        "theme": { "type": "object", "additionalProperties": false, "required": ["background", "foreground", "accent", "muted", "font"], "properties": {
+          "background": { "$ref": "#/definitions/nonempty" }, "foreground": { "$ref": "#/definitions/nonempty" },
+          "accent": { "$ref": "#/definitions/nonempty" }, "muted": { "$ref": "#/definitions/nonempty" }, "font": { "$ref": "#/definitions/nonempty" }
+        } },
+        "demo": { "type": "object", "additionalProperties": false, "required": ["brand", "hero", "product", "collection", "page"], "properties": {
+          "brand": { "$ref": "#/definitions/nonempty" }, "contactEmail": { "type": "string" },
+          "hero": { "type": "object", "additionalProperties": false, "required": ["title", "subtitle", "image"], "properties": { "title": { "$ref": "#/definitions/nonempty" }, "subtitle": { "$ref": "#/definitions/nonempty" }, "image": { "type": "string", "format": "uri" } } },
+          "product": { "$ref": "#/definitions/demoProduct" }, "collection": { "$ref": "#/definitions/demoCollection" }, "page": { "$ref": "#/definitions/demoPage" }
+        } },
+        "showcase": { "type": "object", "additionalProperties": false, "required": ["eyebrow", "heroLabel", "stats", "products", "solutions", "faq"], "properties": {
+          "eyebrow": { "$ref": "#/definitions/nonempty" }, "heroLabel": { "$ref": "#/definitions/nonempty" },
+          "stats": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["value", "label"], "properties": { "value": { "$ref": "#/definitions/nonempty" }, "label": { "$ref": "#/definitions/nonempty" } } } },
+          "products": { "type": "array", "items": { "$ref": "#/definitions/demoProduct" } },
+          "solutions": { "type": "array", "items": { "$ref": "#/definitions/demoCollection" } },
+          "faq": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["question", "answer"], "properties": { "question": { "$ref": "#/definitions/nonempty" }, "answer": { "$ref": "#/definitions/nonempty" } } } }
+        } }
+      }
+    },
     "models": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/model" } },
     "pages": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/page" } },
     "assets": { "type": "array", "items": { "$ref": "#/definitions/asset" } }
@@ -22,6 +43,9 @@
     "identifier": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
     "key": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9]*(?:-[a-zA-Z0-9]+)*$" },
     "nonempty": { "type": "string", "minLength": 1 },
+    "demoProduct": { "type": "object", "additionalProperties": false, "required": ["title", "price", "image", "description"], "properties": { "title": { "$ref": "#/definitions/nonempty" }, "price": { "type": "string" }, "image": { "type": "string", "format": "uri" }, "description": { "type": "string" } } },
+    "demoCollection": { "type": "object", "additionalProperties": false, "required": ["title", "description", "image"], "properties": { "title": { "$ref": "#/definitions/nonempty" }, "description": { "type": "string" }, "image": { "type": "string", "format": "uri" } } },
+    "demoPage": { "type": "object", "additionalProperties": false, "required": ["title", "body", "image"], "properties": { "title": { "$ref": "#/definitions/nonempty" }, "body": { "type": "string" }, "image": { "type": "string", "format": "uri" } } },
     "field": {
       "type": "object", "additionalProperties": false,
       "required": ["key", "label", "type", "required", "array"],
