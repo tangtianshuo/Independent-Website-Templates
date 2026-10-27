@@ -1,1 +1,16 @@
-{"schemaVersion":1,"records":[]}
+{
+  "schemaVersion": 1,
+  "records": [
+    {
+      "schemaVersion": 1,
+      "id": "aeroframe",
+      "version": "1.0.1",
+      "manifestChecksum": "sha256:cd9903e8adde04efc229c015d1ec16ba9e8fdda896c4b1e28ea0d95e3d421fb8",
+      "imageRepository": "ghcr.io/tangtianshuo/independent-website-templates/aeroframe",
+      "imageDigest": "sha256:931b7e38882216deda60ac4060a9b76bbfb782426a1317c7b842727f0931a80a",
+      "sourceCommit": "cad64f168c6167c01250992d147c27c6c7fb1639",
+      "manifestPath": "templates/aeroframe/1.0.1/template.json",
+      "status": "available"
+    }
+  ]
+}
