@@ -57,7 +57,13 @@ test('standalone image renders only its bound published release via authenticate
   await new Promise((resolve) => server.listen(0, '0.0.0.0', resolve));
   let container;
   try {
-    if (!process.env.RELEASE_IMAGE) await exec('docker', ['build', '-f', `templates/aeroframe/${version}/Dockerfile`, '-t', image, `templates/aeroframe/${version}`], { timeout: 240000 });
+    if (!process.env.RELEASE_IMAGE) await exec('docker', ['build', '--build-arg', `SOURCE_COMMIT=${process.env.SOURCE_COMMIT || 'unknown'}`, '--build-arg', `RELEASE_VERSION=${process.env.RELEASE_VERSION || version}`, '-f', `templates/aeroframe/${version}/Dockerfile`, '-t', image, `templates/aeroframe/${version}`], { timeout: 240000 });
+    if (process.env.RELEASE_VERSION) {
+      const { stdout: imageVersion } = await exec('docker', ['image', 'inspect', '--format', '{{ index .Config.Labels "org.opencontainers.image.version" }}', image]);
+      const { stdout: imageRevision } = await exec('docker', ['image', 'inspect', '--format', '{{ index .Config.Labels "org.opencontainers.image.revision" }}', image]);
+      assert.equal(imageVersion.trim(), process.env.RELEASE_VERSION);
+      if (process.env.SOURCE_COMMIT) assert.equal(imageRevision.trim(), process.env.SOURCE_COMMIT);
+    }
     const { stdout } = await exec('docker', ['run', '-d', '--rm', '--add-host', 'host.docker.internal:host-gateway', '-p', '127.0.0.1::3000', '-e', `NUXT_GATEWAY_URL=http://host.docker.internal:${server.address().port}`, '-e', `NUXT_WORKSPACE_ID=${workspaceId}`, '-e', `NUXT_SITE_ID=${siteId}`, '-e', `NUXT_SITE_CREDENTIAL=${credential}`, image]);
     container = stdout.trim();
     const { stdout: port } = await exec('docker', ['port', container, '3000/tcp']);

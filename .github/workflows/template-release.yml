@@ -2,8 +2,10 @@ name: Template release
 
 on:
   push:
-    tags: ['aeroframe-v1.0.1']
+    branches: [master, 'release/v*']
+    tags: ['aeroframe-v*']
   pull_request:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -14,53 +16,77 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version || '1.0.2' }}
+      publish: ${{ steps.release.outputs.publish }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - id: release
+        run: python3 .github/scripts/release.py
+
   verify:
+    needs: metadata
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22'
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: TEMPLATE_VERSION=1.0.1 node --test test/image.test.mjs
-      - run: node scripts/validate.mjs templates/aeroframe/${GITHUB_REF_NAME#aeroframe-v}/template.json
-        if: startsWith(github.ref, 'refs/tags/aeroframe-v')
-      - run: npm run validate
-        if: ${{ !startsWith(github.ref, 'refs/tags/aeroframe-v') }}
+      - name: Validate selected manifest
+        env:
+          TEMPLATE_VERSION: ${{ needs.metadata.outputs.version }}
+        run: node scripts/validate.mjs "templates/aeroframe/${TEMPLATE_VERSION}/template.json"
+      - name: Smoke test locally built template image
+        env:
+          TEMPLATE_VERSION: ${{ needs.metadata.outputs.version }}
+          RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: node --test test/image.test.mjs
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: templates/aeroframe/${{ needs.metadata.outputs.version }}/storefront/package-lock.json
       - run: npm ci
-        working-directory: templates/aeroframe/1.0.1/storefront
+        working-directory: templates/aeroframe/${{ needs.metadata.outputs.version }}/storefront
       - run: npm test
-        working-directory: templates/aeroframe/1.0.1/storefront
+        working-directory: templates/aeroframe/${{ needs.metadata.outputs.version }}/storefront
       - run: npm run build
-        working-directory: templates/aeroframe/1.0.1/storefront
+        working-directory: templates/aeroframe/${{ needs.metadata.outputs.version }}/storefront
 
   publish:
-    if: startsWith(github.ref, 'refs/tags/aeroframe-v')
-    needs: verify
+    if: needs.metadata.outputs.publish == 'true'
+    needs: [metadata, verify]
+    environment: production
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
       id-token: write
       attestations: write
+      artifact-metadata: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with: { fetch-depth: 0 }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with: { node-version: '22', cache: npm }
       - run: npm ci
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: registry
           path: registry
       - id: registry
         env:
+          TEMPLATE_VERSION: ${{ needs.metadata.outputs.version }}
           SOURCE_COMMIT: ${{ github.sha }}
         run: node scripts/check-release-registry.mjs
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -68,7 +94,7 @@ jobs:
       - id: tagged
         if: steps.registry.outputs.digest == ''
         env:
-          IMAGE_TAG: ghcr.io/tangtianshuo/independent-website-templates/aeroframe:${{ github.ref_name }}
+          IMAGE_TAG: ghcr.io/tangtianshuo/independent-website-templates/aeroframe:aeroframe-v${{ needs.metadata.outputs.version }}
         run: |
           if docker pull "$IMAGE_TAG"; then
             reference=$(docker image inspect --format '{{index .RepoDigests 0}}' "$IMAGE_TAG")
@@ -76,13 +102,16 @@ jobs:
           fi
       - id: image
         if: steps.registry.outputs.digest == '' && steps.tagged.outputs.digest == ''
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
         with:
-          context: templates/aeroframe/1.0.1/
-          file: templates/aeroframe/1.0.1/Dockerfile
+          context: templates/aeroframe/${{ needs.metadata.outputs.version }}/
+          file: templates/aeroframe/${{ needs.metadata.outputs.version }}/Dockerfile
           push: true
-          tags: ghcr.io/tangtianshuo/independent-website-templates/aeroframe:${{ github.ref_name }}
-      - uses: actions/attest-build-provenance@v2
+          tags: ghcr.io/tangtianshuo/independent-website-templates/aeroframe:aeroframe-v${{ needs.metadata.outputs.version }}
+          build-args: |
+            SOURCE_COMMIT=${{ github.sha }}
+            RELEASE_VERSION=${{ needs.metadata.outputs.version }}
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8
         if: steps.registry.outputs.digest == '' && steps.tagged.outputs.digest == ''
         with:
           subject-name: ghcr.io/tangtianshuo/independent-website-templates/aeroframe
@@ -110,13 +139,25 @@ jobs:
           exit 1
       - name: Smoke test candidate image
         env:
-          DIGEST: ${{ steps.image.outputs.digest }}
-          TEMPLATE_VERSION: '1.0.1'
+          TEMPLATE_VERSION: ${{ needs.metadata.outputs.version }}
+          RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
+          SOURCE_COMMIT: ${{ github.sha }}
           RELEASE_IMAGE: ghcr.io/tangtianshuo/independent-website-templates/aeroframe@${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
         run: node --test test/image.test.mjs
       - name: Append immutable registry record
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TEMPLATE_VERSION: ${{ needs.metadata.outputs.version }}
           IMAGE_DIGEST: ${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
           SOURCE_COMMIT: ${{ github.sha }}
         run: node scripts/release-registry.mjs
+      - name: Synchronize released template image to server
+        env:
+          IMAGE_DIGEST: ${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
+          RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/scripts/deploy.sh

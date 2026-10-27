@@ -8,9 +8,10 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "validate": "node scripts/validate.mjs templates/aeroframe/1.0.1/template.json",
+    "validate": "node scripts/validate.mjs templates/aeroframe/1.0.2/template.json",
     "validate:1.0.0": "node scripts/validate.mjs templates/aeroframe/1.0.0/template.json",
-    "validate:1.0.1": "node scripts/validate.mjs templates/aeroframe/1.0.1/template.json"
+    "validate:1.0.1": "node scripts/validate.mjs templates/aeroframe/1.0.1/template.json",
+    "validate:1.0.2": "node scripts/validate.mjs templates/aeroframe/1.0.2/template.json"
   },
   "dependencies": {
     "ajv": "8.20.0",

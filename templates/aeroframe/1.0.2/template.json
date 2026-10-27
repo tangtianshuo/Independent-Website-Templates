@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "id": "aeroframe",
+  "version": "1.0.2",
+  "name": "AeroFrame",
+  "description": "A mission-ready storefront for drone, robotics, and low-altitude technology brands.",
+  "compatibility": { "cmsSchema": 1, "releaseSchema": 1 },
+  "presentation": {
+    "theme": { "background": "#080d14", "foreground": "#f3f6fa", "accent": "#4f7dff", "muted": "#182432", "font": "Arial, sans-serif" },
+    "demo": {
+      "brand": "AEROWORKS", "contactEmail": "sales@example.com",
+      "hero": { "title": "Built for the missions ahead", "subtitle": "Reliable aerial systems for demanding work in the real world.", "image": "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=2400&q=88" },
+      "product": { "title": "Aero X8 industrial platform", "price": "$8,490", "image": "https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&w=1400&q=85", "description": "A modular multirotor platform built for inspection, mapping, and rapid deployment." },
+      "collection": { "title": "Aircraft systems", "description": "Field-ready platforms for inspection, mapping, and response teams.", "image": "https://flipandsteep.in/assets/images/course-fixed-wing-fly.png" },
+      "page": { "title": "Engineering in the field", "body": "We build dependable unmanned systems around the work operators need to complete.", "image": "https://drone-safe-register-public.s3.eu-west-2.amazonaws.com/11731/drones-and-wind-turbins.jpg" }
+    },
+    "showcase": {
+      "eyebrow": "UNMANNED SYSTEMS / FIELD PROVEN", "heroLabel": "AERIAL SYSTEMS FOR COMPLEX MISSIONS",
+      "stats": [{ "value": "25 min", "label": "Rapid deployment" }, { "value": "12 kg", "label": "Payload capacity" }, { "value": "IP54", "label": "Weather protection" }],
+      "products": [
+        { "title": "Aero X8 industrial platform", "price": "$8,490", "image": "https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&w=1400&q=85", "description": "A modular multirotor platform built for inspection, mapping, and rapid deployment." },
+        { "title": "Aero M4 field scout", "price": "$3,980", "image": "https://images.unsplash.com/photo-1524143986875-3b098d78b363?auto=format&fit=crop&w=1400&q=85", "description": "A compact aircraft for responsive reconnaissance and close-range site assessment." },
+        { "title": "Aero V2 fixed wing", "price": "$12,600", "image": "https://flipandsteep.in/assets/images/course-fixed-wing-fly.png", "description": "Long-range endurance with efficient cruise and straightforward field recovery." }
+      ],
+      "solutions": [
+        { "title": "Industrial inspection", "description": "Capture close visual and thermal data around infrastructure while keeping crews at a safe distance.", "image": "https://drone-safe-register-public.s3.eu-west-2.amazonaws.com/11731/drones-and-wind-turbins.jpg" },
+        { "title": "Survey & mapping", "description": "Cover large sites with repeatable aerial capture and dependable geospatial workflows.", "image": "https://images.unsplash.com/photo-1524143986875-3b098d78b363?auto=format&fit=crop&w=1600&q=85" },
+        { "title": "Emergency response", "description": "Give teams a clear aerial view when access is difficult and decisions cannot wait.", "image": "https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&w=1600&q=85" }
+      ],
+      "faq": [
+        { "question": "Can the aircraft carry custom payloads?", "answer": "Platforms are designed around modular payload integration. Share your sensor, mount, and mission requirements for a compatibility review." },
+        { "question": "What support is available after delivery?", "answer": "Configuration guidance, operator onboarding, maintenance planning, and replacement parts can be arranged with your project." },
+        { "question": "Can you support a specialized mission profile?", "answer": "Yes. Provide the operating environment, range, endurance, and payload goals so the team can recommend a suitable configuration." }
+      ]
+    }
+  },
+  "models": [
+    {
+      "key": "product", "label": "Products", "description": "Catalog products", "singleEntry": false,
+      "fields": [
+        { "key": "title", "label": "Title", "type": "STRING", "required": true, "array": false },
+        { "key": "slug", "label": "Slug", "type": "STRING", "required": true, "array": false },
+        { "key": "price", "label": "Price", "type": "NUMBER", "required": true, "array": false },
+        { "key": "description", "label": "Description", "type": "STRING", "required": false, "array": false },
+        { "key": "images", "label": "Images", "type": "MEDIA", "required": false, "array": true },
+        { "key": "sku", "label": "SKU", "type": "STRING", "required": false, "array": false }
+      ]
+    },
+    {
+      "key": "collection", "label": "Collections", "description": "Product collections", "singleEntry": false,
+      "fields": [
+        { "key": "title", "label": "Title", "type": "STRING", "required": true, "array": false },
+        { "key": "slug", "label": "Slug", "type": "STRING", "required": true, "array": false },
+        { "key": "description", "label": "Description", "type": "STRING", "required": false, "array": false },
+        { "key": "cover", "label": "Cover", "type": "MEDIA", "required": false, "array": false },
+        { "key": "products", "label": "Products", "type": "ENTRY_POINTER", "required": false, "array": true, "referenceModel": "product" }
+      ]
+    },
+    {
+      "key": "home", "label": "Home page", "description": "Homepage content", "singleEntry": true,
+      "fields": [
+        { "key": "title", "label": "Title", "type": "STRING", "required": true, "array": false },
+        { "key": "slug", "label": "Slug", "type": "STRING", "required": true, "array": false },
+        { "key": "headline", "label": "Headline", "type": "STRING", "required": true, "array": false },
+        { "key": "intro", "label": "Introduction", "type": "STRING", "required": false, "array": false },
+        { "key": "heroImage", "label": "Hero image", "type": "MEDIA", "required": false, "array": false },
+        { "key": "featuredCollections", "label": "Featured collections", "type": "ENTRY_POINTER", "required": false, "array": true, "referenceModel": "collection" },
+        { "key": "featuredProducts", "label": "Featured products", "type": "ENTRY_POINTER", "required": false, "array": true, "referenceModel": "product" }
+      ]
+    },
+    {
+      "key": "content-page", "label": "Pages", "description": "About, shipping and policy pages", "singleEntry": false,
+      "fields": [
+        { "key": "title", "label": "Title", "type": "STRING", "required": true, "array": false },
+        { "key": "slug", "label": "Slug", "type": "STRING", "required": true, "array": false },
+        { "key": "summary", "label": "Summary", "type": "STRING", "required": false, "array": false },
+        { "key": "cover", "label": "Cover", "type": "MEDIA", "required": false, "array": false },
+        { "key": "body", "label": "Body", "type": "RICH_TEXT", "required": false, "array": false },
+        { "key": "seoDescription", "label": "SEO description", "type": "STRING", "required": false, "array": false }
+      ]
+    },
+    {
+      "key": "site-settings", "label": "Site settings", "description": "Shared brand and navigation", "singleEntry": true,
+      "fields": [
+        { "key": "title", "label": "Title", "type": "STRING", "required": true, "array": false },
+        { "key": "slug", "label": "Slug", "type": "STRING", "required": true, "array": false },
+        { "key": "brandName", "label": "Brand name", "type": "STRING", "required": true, "array": false },
+        { "key": "logo", "label": "Logo", "type": "MEDIA", "required": false, "array": false },
+        { "key": "announcement", "label": "Announcement", "type": "STRING", "required": false, "array": false },
+        { "key": "contactEmail", "label": "Contact email", "type": "STRING", "required": false, "array": false },
+        { "key": "navigationPages", "label": "Navigation pages", "type": "ENTRY_POINTER", "required": false, "array": true, "referenceModel": "content-page" }
+      ]
+    }
+  ],
+  "pages": [
+    { "key": "home", "title": "Home", "path": "/", "modelKey": "home", "layout": "home" },
+    { "key": "collections", "title": "Collections", "path": "/collections", "modelKey": "collection", "layout": "collection-list" },
+    { "key": "product", "title": "Product detail", "path": "/products/:slug", "modelKey": "product", "layout": "product-detail" },
+    { "key": "content", "title": "Content page", "path": "/pages/:slug", "modelKey": "content-page", "layout": "content-page" }
+  ],
+  "assets": [
+    { "path": "assets/hero.png", "checksum": "47b7b9fcbb62b73e149302a001cd661eaa23469aedfb249a56a9a29d026c6ca4", "mimeType": "image/png" }
+  ]
+}

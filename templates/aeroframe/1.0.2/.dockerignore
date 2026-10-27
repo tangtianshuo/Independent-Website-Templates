@@ -1,0 +1,5 @@
+storefront/node_modules
+storefront/.nuxt
+storefront/.output
+storefront/.data
+storefront/test
