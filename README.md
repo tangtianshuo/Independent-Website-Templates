@@ -69,3 +69,13 @@ GHCR 新 package 默认可能是私有的。若首发包不可匿名读取，工
 - 镜像：`ghcr.io/tangtianshuo/independent-website-templates/aeroframe@sha256:931b7e38882216deda60ac4060a9b76bbfb782426a1317c7b842727f0931a80a`。
 
 镜像通过服务端站点凭据读取 Gateway schema v1 快照；不是无需 Gateway 即可独立运行的静态站点。MIT 许可证允许复用代码；演示文案和图片需要使用者按自己的业务替换。当前发布验证不代表完整生产运维验收。
+
+## AeroFrame 1.0.2 版本分支发布结果
+
+2026-10-27，`release/v1.0.2` 流水线 `40461390282` 已成功完成验证、镜像发布、provenance 验证、匿名拉取、registry 追加和服务器同步。
+
+- 源码：`4f6e1a8d4558b610c395590537dc2891db109be6`。
+- 镜像：`ghcr.io/tangtianshuo/independent-website-templates/aeroframe@sha256:8aaec8fb8d6c18a6435f3f1bbc06cdfe9ad5b49139850956e53374345c1d8b69`。
+- 服务器回执：`/opt/novaintelligent/deploy/releases/templates.current.json`。
+
+现有活动站点继续使用 AeroFrame 1.0.1，发布 1.0.2 没有替换站点容器或内容 Release。需要在 CMS 显式采用新模板版本并发布站点后才切换。
