@@ -15,7 +15,7 @@ export function resolveReleaseVersion({ templateVersion, refName } = {}) {
   if (fromRef !== undefined && !semver.test(fromRef)) throw new Error(`Malformed release version: ${fromRef}`);
   if (templateVersion !== undefined && !semver.test(templateVersion)) throw new Error(`Malformed TEMPLATE_VERSION: ${templateVersion}`);
   if (templateVersion && fromRef && templateVersion !== fromRef) throw new Error('TEMPLATE_VERSION does not match release ref');
-  const version = templateVersion || fromRef || '1.0.2';
+  const version = templateVersion || fromRef || '1.0.3';
   if (!semver.test(version)) throw new Error(`Malformed release version: ${version}`);
   return version;
 }

@@ -19,7 +19,7 @@ jobs:
   metadata:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.release.outputs.version || '1.0.2' }}
+      version: ${{ steps.release.outputs.version || '1.0.3' }}
       publish: ${{ steps.release.outputs.publish }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -58,6 +58,9 @@ jobs:
         working-directory: templates/aeroframe/${{ needs.metadata.outputs.version }}/storefront
       - run: npm run build
         working-directory: templates/aeroframe/${{ needs.metadata.outputs.version }}/storefront
+      - name: Exercise built 1.0.3 renderer and private preview
+        if: needs.metadata.outputs.version == '1.0.3'
+        run: npm run test:runtime
 
   publish:
     if: needs.metadata.outputs.publish == 'true'

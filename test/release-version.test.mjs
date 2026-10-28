@@ -6,7 +6,7 @@ test('resolves version from TEMPLATE_VERSION, release branch, and legacy tag', (
   assert.equal(resolveReleaseVersion({ templateVersion: '2.3.4' }), '2.3.4');
   assert.equal(resolveReleaseVersion({ refName: 'release/v2.3.4' }), '2.3.4');
   assert.equal(resolveReleaseVersion({ refName: 'aeroframe-v2.3.4' }), '2.3.4');
-  assert.equal(resolveReleaseVersion({ refName: 'master' }), '1.0.2');
+  assert.equal(resolveReleaseVersion({ refName: 'master' }), '1.0.3');
 });
 
 test('rejects malformed refs and mismatched version overrides', () => {

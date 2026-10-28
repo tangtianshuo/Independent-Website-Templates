@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import test from 'node:test';
 
 const exec = promisify(execFile);
-const version = process.env.TEMPLATE_VERSION || '1.0.0';
+const version = process.env.TEMPLATE_VERSION || '1.0.3';
 const image = process.env.RELEASE_IMAGE || `local/aeroframe:${version}`;
 const siteId = 'published-site';
 const workspaceId = 'published-workspace';

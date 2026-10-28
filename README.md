@@ -1,6 +1,6 @@
 # Storefront Templates
 
-独立站模板源码仓库，集中维护模板清单、静态资源和对应的 Storefront 实现。包含 AeroFrame 1.0.0、1.0.1 和 1.0.2。公开索引由 `registry` 分支的 `registry/index.json` 提供，镜像使用不可变 digest。
+独立站模板源码仓库，集中维护模板清单、静态资源和对应的 Storefront 实现。包含 AeroFrame 1.0.0–1.0.3；1.0.3 当前为本地开发版本，未发布。公开索引由 `registry` 分支的 `registry/index.json` 提供，镜像使用不可变 digest。
 
 ## 环境与验证
 
@@ -12,7 +12,7 @@ npm test
 npm run validate
 ```
 
-`npm run validate` 校验 1.0.2。要校验固定版本，运行：
+`npm run validate` 校验 1.0.3。要校验固定版本，运行：
 
 ```sh
 node scripts/validate.mjs templates/<id>/<version>/template.json
@@ -21,7 +21,7 @@ node scripts/validate.mjs templates/<id>/<version>/template.json
 单独验证 AeroFrame 的 Storefront：
 
 ```sh
-cd templates/aeroframe/1.0.2/storefront
+cd templates/aeroframe/1.0.3/storefront
 npm ci
 npm test
 npm run build
@@ -79,3 +79,12 @@ GHCR 新 package 默认可能是私有的。若首发包不可匿名读取，工
 - 服务器回执：`/opt/novaintelligent/deploy/releases/templates.current.json`。
 
 现有活动站点继续使用 AeroFrame 1.0.1，发布 1.0.2 没有替换站点容器或内容 Release。需要在 CMS 显式采用新模板版本并发布站点后才切换。
+
+
+## AeroFrame 1.0.3（待发布）
+
+新版本按快照的显式 `view` 渲染，集合页可以使用 `/catalog`，不再从路径推断页面类型。主题和支持的区块顺序由发布页面与私有预览共用的组件消费。1.0.0–1.0.2 目录保持不变。
+
+采用前提、私有 iframe 消息协议、环境变量和能力限制见 [1.0.3 adoption notes](templates/aeroframe/1.0.3/ADOPTION.md)。本地验证完成后仍需独立执行镜像发布和 registry 录入，CMS 显式采用并发布该版本；合并代码不会升级活动站点。
+
+构建 1.0.3 后，在仓库根目录运行 `npm run test:runtime`，可通过真实 Node 服务验证显式路径、主题、区块顺序、私有预览响应头和公共字段投影。该验证不依赖 Docker；`npm test` 保留原有 Docker 镜像 smoke test。
