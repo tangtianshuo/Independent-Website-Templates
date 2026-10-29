@@ -19,7 +19,8 @@ jobs:
   metadata:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.release.outputs.version || '1.0.3' }}
+      template_id: ${{ steps.release.outputs.template_id }}
+      version: ${{ steps.release.outputs.version }}
       publish: ${{ steps.release.outputs.publish }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -29,6 +30,9 @@ jobs:
   verify:
     needs: metadata
     runs-on: ubuntu-latest
+    env:
+      TEMPLATE_ID: ${{ needs.metadata.outputs.template_id }}
+      TEMPLATE_VERSION: ${{ needs.metadata.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
@@ -40,7 +44,7 @@ jobs:
       - name: Validate selected manifest
         env:
           TEMPLATE_VERSION: ${{ needs.metadata.outputs.version }}
-        run: node scripts/validate.mjs "templates/aeroframe/${TEMPLATE_VERSION}/template.json"
+        run: node scripts/validate.mjs "templates/${{ needs.metadata.outputs.template_id }}/${TEMPLATE_VERSION}/template.json"
       - name: Smoke test locally built template image
         env:
           TEMPLATE_VERSION: ${{ needs.metadata.outputs.version }}
@@ -51,15 +55,14 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: templates/aeroframe/${{ needs.metadata.outputs.version }}/storefront/package-lock.json
+          cache-dependency-path: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront/package-lock.json
       - run: npm ci
-        working-directory: templates/aeroframe/${{ needs.metadata.outputs.version }}/storefront
+        working-directory: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront
       - run: npm test
-        working-directory: templates/aeroframe/${{ needs.metadata.outputs.version }}/storefront
+        working-directory: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront
       - run: npm run build
-        working-directory: templates/aeroframe/${{ needs.metadata.outputs.version }}/storefront
-      - name: Exercise built 1.0.3 renderer and private preview
-        if: needs.metadata.outputs.version == '1.0.3'
+        working-directory: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront
+      - name: Exercise selected renderer and private preview
         run: npm run test:runtime
 
   publish:
@@ -67,6 +70,8 @@ jobs:
     needs: [metadata, verify]
     environment: production
     runs-on: ubuntu-latest
+    env:
+      TEMPLATE_ID: ${{ needs.metadata.outputs.template_id }}
     permissions:
       contents: write
       packages: write
@@ -97,7 +102,7 @@ jobs:
       - id: tagged
         if: steps.registry.outputs.digest == ''
         env:
-          IMAGE_TAG: ghcr.io/tangtianshuo/independent-website-templates/aeroframe:aeroframe-v${{ needs.metadata.outputs.version }}
+          IMAGE_TAG: ghcr.io/tangtianshuo/independent-website-templates/${{ needs.metadata.outputs.template_id }}:${{ needs.metadata.outputs.template_id }}-v${{ needs.metadata.outputs.version }}
         run: |
           if docker pull "$IMAGE_TAG"; then
             reference=$(docker image inspect --format '{{index .RepoDigests 0}}' "$IMAGE_TAG")
@@ -107,17 +112,17 @@ jobs:
         if: steps.registry.outputs.digest == '' && steps.tagged.outputs.digest == ''
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
         with:
-          context: templates/aeroframe/${{ needs.metadata.outputs.version }}/
-          file: templates/aeroframe/${{ needs.metadata.outputs.version }}/Dockerfile
+          context: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/
+          file: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/Dockerfile
           push: true
-          tags: ghcr.io/tangtianshuo/independent-website-templates/aeroframe:aeroframe-v${{ needs.metadata.outputs.version }}
+          tags: ghcr.io/tangtianshuo/independent-website-templates/${{ needs.metadata.outputs.template_id }}:${{ needs.metadata.outputs.template_id }}-v${{ needs.metadata.outputs.version }}
           build-args: |
             SOURCE_COMMIT=${{ github.sha }}
             RELEASE_VERSION=${{ needs.metadata.outputs.version }}
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8
         if: steps.registry.outputs.digest == '' && steps.tagged.outputs.digest == ''
         with:
-          subject-name: ghcr.io/tangtianshuo/independent-website-templates/aeroframe
+          subject-name: ghcr.io/tangtianshuo/independent-website-templates/${{ needs.metadata.outputs.template_id }}
           subject-digest: ${{ steps.image.outputs.digest }}
           push-to-registry: true
       - name: Verify provenance
@@ -126,14 +131,14 @@ jobs:
           DIGEST: ${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
           SOURCE_COMMIT: ${{ github.sha }}
           SOURCE_REF: ${{ github.ref }}
-        run: gh attestation verify "oci://ghcr.io/tangtianshuo/independent-website-templates/aeroframe@${DIGEST}" -R tangtianshuo/Independent-Website-Templates --source-ref "$SOURCE_REF" --source-digest "$SOURCE_COMMIT" --signer-workflow tangtianshuo/Independent-Website-Templates/.github/workflows/template-release.yml
+        run: gh attestation verify "oci://ghcr.io/tangtianshuo/independent-website-templates/${{ needs.metadata.outputs.template_id }}@${DIGEST}" -R tangtianshuo/Independent-Website-Templates --source-ref "$SOURCE_REF" --source-digest "$SOURCE_COMMIT" --signer-workflow tangtianshuo/Independent-Website-Templates/.github/workflows/template-release.yml
       - name: Confirm anonymous image access
         env:
           DIGEST: ${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
         run: |
           docker logout ghcr.io
           for attempt in $(seq 1 60); do
-            if docker pull "ghcr.io/tangtianshuo/independent-website-templates/aeroframe@${DIGEST}"; then
+            if docker pull "ghcr.io/tangtianshuo/independent-website-templates/${{ needs.metadata.outputs.template_id }}@${DIGEST}"; then
               exit 0
             fi
             echo "Anonymous pull unavailable; make the GHCR package public in GitHub Packages. Retrying in 30 seconds (${attempt}/60)."
@@ -145,7 +150,7 @@ jobs:
           TEMPLATE_VERSION: ${{ needs.metadata.outputs.version }}
           RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
           SOURCE_COMMIT: ${{ github.sha }}
-          RELEASE_IMAGE: ghcr.io/tangtianshuo/independent-website-templates/aeroframe@${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
+          RELEASE_IMAGE: ghcr.io/tangtianshuo/independent-website-templates/${{ needs.metadata.outputs.template_id }}@${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
         run: node --test test/image.test.mjs
       - name: Append immutable registry record
         env:
@@ -155,6 +160,7 @@ jobs:
           SOURCE_COMMIT: ${{ github.sha }}
         run: node scripts/release-registry.mjs
       - name: Synchronize released template image to server
+        if: needs.metadata.outputs.template_id == 'aeroframe'
         env:
           IMAGE_DIGEST: ${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
           RELEASE_VERSION: ${{ needs.metadata.outputs.version }}

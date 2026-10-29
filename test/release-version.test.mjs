@@ -21,3 +21,10 @@ test('rejects a release version that differs from the manifest', () => {
   assert.throws(() => assertManifestVersion({ id: 'aeroframe', version: '1.0.1' }, '1.0.2'), /does not match/i);
   assert.throws(() => assertManifestVersion({ id: 'other', version: '1.0.2' }, '1.0.2'), /does not match/i);
 });
+
+test('verifies the selected template identity independently from its release version', () => {
+  const manifest = { id: 'fireguard', version: '1.0.0' };
+  assert.equal(assertManifestVersion(manifest, '1.0.0', 'fireguard'), manifest);
+  assert.throws(() => assertManifestVersion(manifest, '1.0.0', 'aeroframe'), /does not match/i);
+  assert.throws(() => assertManifestVersion(manifest, '1.0.1', 'fireguard'), /does not match/i);
+});

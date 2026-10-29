@@ -20,9 +20,9 @@ export function resolveReleaseVersion({ templateVersion, refName } = {}) {
   return version;
 }
 
-export function assertManifestVersion(manifest, version) {
-  if (manifest?.id !== 'aeroframe' || manifest.version !== version) {
-    throw new Error(`Release version ${version} does not match AeroFrame manifest`);
+export function assertManifestVersion(manifest, version, templateId = 'aeroframe') {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(templateId) || manifest?.id !== templateId || manifest.version !== version) {
+    throw new Error(`Release identity ${templateId}@${version} does not match manifest`);
   }
   return manifest;
 }

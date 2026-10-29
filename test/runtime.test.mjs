@@ -6,7 +6,11 @@ import { createServer } from 'node:http';
 import test from 'node:test';
 
 const root = new URL('../', import.meta.url);
-const storefront = new URL('templates/aeroframe/1.0.3/storefront/', root);
+const templateId = process.env.TEMPLATE_ID || 'aeroframe';
+const version = process.env.TEMPLATE_VERSION || '1.0.3';
+assert.match(templateId, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+const prefix = templateId === 'fireguard' ? 'fire' : 'aero';
+const storefront = new URL(`templates/${templateId}/${version}/storefront/`, root);
 const manifest = JSON.parse(await readFile(new URL('../template.json', storefront)));
 const preset = { id: manifest.id, version: manifest.version, name: manifest.name, description: manifest.description, ...manifest.presentation };
 preset.theme = { background: '#010203', foreground: '#fafafa', accent: '#ff3300', muted: '#112233', font: 'Arial, sans-serif' };
@@ -40,7 +44,7 @@ async function renderer(t, gatewayUrl, previewAdminOrigin) {
   throw new Error(`Renderer did not start: ${logs}`);
 }
 
-test('built 1.0.3 renders explicit paths, theme and section order, and keeps private preview empty on the server', { skip: !process.env.TEST_BUILT_TEMPLATE, timeout: 30000 }, async t => {
+test('built selected template renders explicit paths, theme and section order, and keeps private preview empty on the server', { skip: !process.env.TEST_BUILT_TEMPLATE, timeout: 30000 }, async t => {
   const requests = [];
   const gateway = createServer((req, res) => {
     requests.push({ url: req.url, authorization: req.headers.authorization });
@@ -49,13 +53,13 @@ test('built 1.0.3 renders explicit paths, theme and section order, and keeps pri
   });
   const port = await listen(gateway); t.after(() => new Promise(resolve => gateway.close(resolve)));
   const base = await renderer(t, `http://127.0.0.1:${port}`, 'https://cms.example.com');
-  for (const [path, first, second] of [['/', 'class="aero-intro', 'class="aero-hero"'], ['/catalog', 'class="aero-product-grid', 'AIRCRAFT / PRODUCT RANGE'], ['/aircraft', 'class="aero-product-page__info', 'class="aero-product-description']]) {
+  for (const [path, first, second] of [['/', `class="${prefix}-intro`, `class="${prefix}-hero"`], ['/catalog', `class="${prefix}-product-grid`, templateId === 'fireguard' ? '消防设备 / 产品目录' : 'AIRCRAFT / PRODUCT RANGE'], ['/aircraft', `class="${prefix}-product-page__info`, `class="${prefix}-product-description`]]) {
     const response = await fetch(`${base}${path}`); assert.equal(response.status, 200, path);
     const html = await response.text(); assert.ok(html.indexOf(first) >= 0 && html.indexOf(first) < html.indexOf(second), `${path} follows sections order`);
-    assert.match(html, /--aero-bg:#010203/); assert.match(html, /--aero-blue:#ff3300/); assert.match(html, /--aero-font:Arial/);
+    assert.ok(html.includes(`--${prefix}-bg:#010203`)); assert.ok(html.includes(`--${prefix}-${prefix === 'fire' ? 'accent' : 'blue'}:#ff3300`)); assert.ok(html.includes(`--${prefix}-font:Arial`));
     assert.ok(!html.includes('private-site-credential')); assert.ok(!html.includes('cms-entry'));
     if (path === '/') assert.match(html, /href="\/catalog"/);
-    if (path === '/aircraft') assert.ok(html.indexOf('class="aero-product-description') < html.indexOf('class="aero-product-page__image'));
+    if (path === '/aircraft') assert.ok(html.indexOf(`class="${prefix}-product-description`) < html.indexOf(`class="${prefix}-product-page__image`));
   }
   const redirect = await fetch(`${base}/old-catalog`, { redirect: 'manual' }); assert.equal(redirect.status, 308); assert.equal(redirect.headers.get('location'), '/catalog');
   const requestCount = requests.length;

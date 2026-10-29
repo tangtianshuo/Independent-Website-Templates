@@ -6,13 +6,15 @@ import { promisify } from 'node:util';
 import test from 'node:test';
 
 const exec = promisify(execFile);
+const templateId = process.env.TEMPLATE_ID || 'aeroframe';
+assert.match(templateId, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const version = process.env.TEMPLATE_VERSION || '1.0.3';
-const image = process.env.RELEASE_IMAGE || `local/aeroframe:${version}`;
+const image = process.env.RELEASE_IMAGE || `local/${templateId}:${version}`;
 const siteId = 'published-site';
 const workspaceId = 'published-workspace';
 const credential = 'fixture-site-token';
 const preset = {
-  id: 'aeroframe', version, name: 'AeroFrame', description: 'A mission-ready storefront for drone, robotics, and low-altitude technology brands.',
+  id: templateId, version, name: 'AeroFrame', description: 'A mission-ready storefront for drone, robotics, and low-altitude technology brands.',
   theme: { background: '#080d14', foreground: '#f3f6fa', accent: '#4f7dff', muted: '#182432', font: 'Arial, sans-serif' },
   demo: {
     brand: 'AEROWORKS', contactEmail: 'sales@example.com',
@@ -57,7 +59,7 @@ test('standalone image renders only its bound published release via authenticate
   await new Promise((resolve) => server.listen(0, '0.0.0.0', resolve));
   let container;
   try {
-    if (!process.env.RELEASE_IMAGE) await exec('docker', ['build', '--build-arg', `SOURCE_COMMIT=${process.env.SOURCE_COMMIT || 'unknown'}`, '--build-arg', `RELEASE_VERSION=${process.env.RELEASE_VERSION || version}`, '-f', `templates/aeroframe/${version}/Dockerfile`, '-t', image, `templates/aeroframe/${version}`], { timeout: 240000 });
+    if (!process.env.RELEASE_IMAGE) await exec('docker', ['build', '--build-arg', `SOURCE_COMMIT=${process.env.SOURCE_COMMIT || 'unknown'}`, '--build-arg', `RELEASE_VERSION=${process.env.RELEASE_VERSION || version}`, '-f', `templates/${templateId}/${version}/Dockerfile`, '-t', image, `templates/${templateId}/${version}`], { timeout: 240000 });
     if (process.env.RELEASE_VERSION) {
       const { stdout: imageVersion } = await exec('docker', ['image', 'inspect', '--format', '{{ index .Config.Labels "org.opencontainers.image.version" }}', image]);
       const { stdout: imageRevision } = await exec('docker', ['image', 'inspect', '--format', '{{ index .Config.Labels "org.opencontainers.image.revision" }}', image]);
