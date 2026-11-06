@@ -247,3 +247,16 @@ export function previewHeaders(adminOrigin) {
     'referrer-policy': 'no-referrer',
   } : null;
 }
+
+
+// NuxtLink includes app.baseURL in href; snapshot routes remain site-relative.
+// Keep query/hash bytes intact for the existing resolver to handle.
+export function previewNavigationPath(href, baseURL) {
+  if (typeof href !== 'string' || !href.startsWith('/') || href.startsWith('//')) return null;
+  if (typeof baseURL === 'string' && baseURL !== '/' && baseURL.startsWith('/') &&
+      !baseURL.startsWith('//') && baseURL.endsWith('/') && !/[?#]/.test(baseURL) && href.startsWith(baseURL)) {
+    const path = '/' + href.slice(baseURL.length);
+    return path.startsWith('//') ? null : path;
+  }
+  return href;
+}

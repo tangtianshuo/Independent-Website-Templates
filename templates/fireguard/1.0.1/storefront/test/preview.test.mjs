@@ -128,3 +128,16 @@ test('preview builds disable metadata and payload fetches while public config ke
     else process.env.PREVIEW_APP_BASE_URL = before;
   }
 });
+
+
+test('preview navigation removes only its exact configured base and preserves suffixes', async () => {
+  const { previewNavigationPath } = await import('../shared/snapshot.mjs');
+  assert.equal(typeof previewNavigationPath, 'function');
+  const base = '/preview/local/1.0.0/';
+  assert.equal(previewNavigationPath(base, base), '/');
+  assert.equal(previewNavigationPath(base + 'second', base), '/second');
+  assert.equal(previewNavigationPath(base + 'second?view=all#details', base), '/second?view=all#details');
+  for (const path of ['/second', '/preview/local/1.0.00/second', '/preview/foreign/1.0.0/second']) assert.equal(previewNavigationPath(path, base), path);
+  assert.equal(previewNavigationPath('/second', '/'), '/second');
+  for (const path of ['https://foreign.example/second', '//foreign.example/second', 'mailto:test@example.com']) assert.equal(previewNavigationPath(path, base), null);
+});

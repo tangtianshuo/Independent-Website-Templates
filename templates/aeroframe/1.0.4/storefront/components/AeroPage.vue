@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { previewNavigationPath } from '#preview-shared/snapshot.mjs';
 const props = defineProps<{ page: any; preview?: boolean }>();
 const emit = defineEmits<{ navigate: [path: string] }>();
 const published = computed(() => props.page);
@@ -22,9 +23,10 @@ function navigatePreview(event: MouseEvent) {
   if (!props.preview) return;
   const link = (event.target as Element)?.closest('a');
   const href = link?.getAttribute('href');
-  if (!href?.startsWith('/') || href.startsWith('//')) return;
+  const path = previewNavigationPath(href, runtimeConfig.app.baseURL);
+  if (path === null) return;
   event.preventDefault(); event.stopPropagation(); menuOpen.value = false;
-  emit('navigate', href);
+  emit('navigate', path);
 }
 useHead(() => ({ htmlAttrs: { lang: published.value.language }, title: content.value.seo.title,
   meta: [{ name: 'description', content: content.value.seo.description }] }));
