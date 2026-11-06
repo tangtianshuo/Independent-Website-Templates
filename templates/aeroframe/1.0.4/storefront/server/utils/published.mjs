@@ -16,6 +16,7 @@ function canonical(value) {
 export function publishedPage(response, workspaceId, siteId, path) {
   if (!workspaceId || !siteId || !safePath(path) || !matches(response, envelopeShape)) return null;
   const { snapshot } = response;
+  if (snapshot.assets !== undefined && !validatePublishedAssets(snapshot.assets, undefined, '/_assets/')) return null;
   if (!response.workspaceId || !response.siteId || !response.releaseId ||
       response.workspaceId !== workspaceId || response.siteId !== siteId ||
       snapshot.workspaceId !== workspaceId || snapshot.siteId !== siteId || !snapshot.language ||

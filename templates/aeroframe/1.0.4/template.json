@@ -689,7 +689,7 @@
         "pageKey": "product",
         "modelKey": "product",
         "pathRule": {
-          "type": "fixed",
+          "type": "pattern",
           "value": "/products/:slug"
         },
         "allowNavigation": false,
@@ -703,7 +703,7 @@
         "pageKey": "content",
         "modelKey": "content-page",
         "pathRule": {
-          "type": "fixed",
+          "type": "pattern",
           "value": "/pages/:slug"
         },
         "allowNavigation": true,
