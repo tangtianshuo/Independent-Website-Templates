@@ -11,8 +11,20 @@ const digest = createHash('sha256').update(png).digest('hex');
 const asset = { path: 'assets/hero.png', checksum: digest, mimeType: 'image/png' };
 const field = (key, type = 'STRING', referenceModel) => ({ key, label: key, type, required: false, array: false, ...(referenceModel ? { referenceModel } : {}) });
 const manifest = () => ({
-  schemaVersion: 1, id: 'aeroframe', version: '1.0.0', name: 'AeroFrame', description: 'Aircraft',
-  compatibility: { cmsSchema: 1, releaseSchema: 1 },
+  schemaVersion: 1, id: 'aeroframe', version: '1.0.4', name: 'AeroFrame', description: 'Aircraft',
+  compatibility: { cmsSchema: 1, releaseSchema: 1, migrations: [] },
+  editor: {
+    schemaVersion: 1,
+    models: [{ modelKey: 'home', fields: [{ key: 'title', label: 'Title', control: 'text', group: 'Content', description: 'Page title', default: 'Home' }] }],
+    pages: [{ pageKey: 'home', modelKey: 'home', pathRule: { type: 'fixed', value: '/' }, allowNavigation: true, sections: ['hero'] }],
+    sections: [{ type: 'hero', label: 'Hero', allowedPages: ['home'], singleton: true, required: true, props: { title: { control: 'text', required: true } } }],
+    operations: { canCreatePages: true, canEditNavigation: true, canPublish: true },
+  },
+  renderer: {
+    contractVersion: 1, templateId: 'aeroframe', templateVersion: '1.0.4',
+    preview: { protocolVersion: 1, capabilities: ['select-node', 'hover-node'] },
+    assets: { mode: 'published', basePath: '/_assets/' },
+  },
   presentation: { theme: { background: '#080d14', foreground: '#f3f6fa', accent: '#4f7dff', muted: '#182432', font: 'Arial, sans-serif' }, demo: { brand: 'AEROWORKS', hero: { title: 'Mission', subtitle: 'Ready', image: 'https://example.test/hero.jpg' }, product: { title: 'Drone', price: '$10', image: 'https://example.test/p.jpg', description: 'A product' }, collection: { title: 'Fleet', description: 'Aircraft', image: 'https://example.test/c.jpg' }, page: { title: 'About', body: 'About us', image: 'https://example.test/a.jpg' } } },
   models: [
     { key: 'home', label: 'Home', description: '', singleEntry: true, fields: [field('title'), field('products', 'ENTRY_POINTER', 'product')] },
@@ -79,12 +91,12 @@ test('rejects invalid references, reserved routes and malformed routes', async (
     (m) => { m.models[0].fields[1].referenceModel = 'missing'; },
     (m) => { delete m.models[0].fields[1].referenceModel; },
     (m) => { m.models[0].fields[0].referenceModel = 'product'; },
-    ...['/api', '/preview/items', '/presets/a', '/products/foo', '//evil.test'].map((path) => (m) => { m.pages[0].path = path; }),
+    ...['/api', '/preview/items', '/presets/a', '/products/foo', '//evil.test'].map((path) => (m) => { m.pages[0].path = path; m.editor.pages[0].pathRule.value = path; }),
   ]) {
     const candidate = manifest(); change(candidate);
     await assert.rejects(validateManifest(candidate, root));
   }
-  const candidate = manifest(); candidate.pages[0].path = '/products/:slug';
+  const candidate = manifest(); candidate.pages[0].path = '/products/:slug'; candidate.editor.pages[0].pathRule = { type: 'fixed', value: '/products/:slug' };
   await validateManifest(candidate, root);
 });
 
@@ -165,8 +177,74 @@ test('checked-in AeroFrame manifest retains the CMS field specs and page mapping
 test('requires CMS presentation data for a public template manifest', async (t) => {
   const root = await fixture(t);
   const candidate = manifest();
-  candidate.version = '1.0.1';
+  candidate.version = '1.0.5';
+  candidate.renderer.templateVersion = candidate.version;
   await validateManifest(candidate, root);
   delete candidate.presentation;
   await assert.rejects(validateManifest(candidate, root), /presentation/i);
+});
+
+test('requires editor and renderer contracts for current public releases', async (t) => {
+  const root = await fixture(t);
+  const candidate = manifest();
+  delete candidate.editor;
+  await assert.rejects(validateManifest(candidate, root), /editor/i);
+  const second = manifest();
+  delete second.renderer;
+  await assert.rejects(validateManifest(second, root), /renderer/i);
+});
+
+test('rejects editor references to unknown models, pages and sections', async (t) => {
+  const root = await fixture(t);
+  for (const change of [
+    (m) => { m.editor.models[0].modelKey = 'missing'; },
+    (m) => { m.editor.pages[0].pageKey = 'missing'; },
+    (m) => { m.editor.pages[0].sections = ['missing']; },
+    (m) => { m.editor.sections[0].allowedPages = ['missing']; },
+    (m) => { m.editor.pages[0].pathRule = { type: 'pattern', value: '/bad/:slug/:slug' }; },
+    (m) => { m.renderer.contractVersion = 2; },
+  ]) {
+    const candidate = manifest(); change(candidate);
+    await assert.rejects(validateManifest(candidate, root));
+  }
+});
+
+test('rejects duplicate editor declarations and invalid migration identities', async (t) => {
+  const root = await fixture(t);
+  for (const change of [
+    (m) => { m.editor.models.push({ ...m.editor.models[0] }); },
+    (m) => { m.editor.pages.push({ ...m.editor.pages[0], pageKey: 'other' }); },
+    (m) => { m.editor.sections.push({ ...m.editor.sections[0] }); },
+    (m) => { m.compatibility.migrations.push({ from: 'aeroframe@1.0.0', to: 'other@1.0.1', steps: [] }); },
+    (m) => { m.compatibility.migrations.push({ from: 'other@1.0.0', to: 'aeroframe@1.0.0', steps: [] }); },
+  ]) {
+    const candidate = manifest(); change(candidate);
+    await assert.rejects(validateManifest(candidate, root));
+  }
+});
+
+test('checked-in current manifests declare editor and renderer identities', async () => {
+  for (const path of ['../templates/aeroframe/1.0.4/template.json', '../templates/fireguard/1.0.1/template.json']) {
+    const root = new URL(path.replace('template.json', ''), import.meta.url);
+    const candidate = JSON.parse(await readFile(new URL('template.json', root), 'utf8'));
+    await validateManifest(candidate, root);
+    assert.equal(candidate.editor.schemaVersion, 1);
+    assert.equal(candidate.renderer.contractVersion, 1);
+    assert.equal(candidate.renderer.templateId, candidate.id);
+    assert.equal(candidate.renderer.templateVersion, candidate.version);
+  }
+});
+
+
+test('immutable legacy manifests still validate without editor or renderer contracts', async () => {
+  for (const version of ['1.0.0', '1.0.1', '1.0.2', '1.0.3']) {
+    const root = new URL(`../templates/aeroframe/${version}/`, import.meta.url);
+    const candidate = JSON.parse(await readFile(new URL('template.json', root), 'utf8'));
+    assert.equal(candidate.editor, undefined);
+    await validateManifest(candidate, root);
+  }
+  const root = new URL('../templates/fireguard/1.0.0/', import.meta.url);
+  const candidate = JSON.parse(await readFile(new URL('template.json', root), 'utf8'));
+  assert.equal(candidate.editor, undefined);
+  await validateManifest(candidate, root);
 });

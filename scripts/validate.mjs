@@ -45,11 +45,62 @@ function imageMatches(bytes, mimeType) {
   return false;
 }
 
+function validateEditorContract(manifest) {
+  const editor = manifest.editor;
+  const renderer = manifest.renderer;
+  if (!editor || !renderer) {
+    throw new Error('Invalid manifest: editor and renderer contracts are required');
+  }
+  if (renderer.templateId !== manifest.id || renderer.templateVersion !== manifest.version) {
+    throw new Error('Invalid renderer identity');
+  }
+  const modelKeys = new Set(manifest.models.map(({ key }) => key));
+  const pageKeys = new Set(manifest.pages.map(({ key }) => key));
+  const sectionKeys = new Set(editor.sections.map(({ type }) => type));
+  unique(editor.models.map(({ modelKey }) => modelKey), 'editor model key');
+  unique(editor.pages.map(({ pageKey }) => pageKey), 'editor page key');
+  unique(editor.sections.map(({ type }) => type), 'editor section type');
+  for (const model of editor.models) {
+    if (!modelKeys.has(model.modelKey)) throw new Error(`Unknown editor model: ${model.modelKey}`);
+    unique(model.fields.map(({ key }) => key), `editor field key in ${model.modelKey}`);
+  }
+  for (const page of editor.pages) {
+    if (!pageKeys.has(page.pageKey)) throw new Error(`Unknown editor page: ${page.pageKey}`);
+    const manifestPage = manifest.pages.find(({ key }) => key === page.pageKey);
+    if (page.modelKey !== manifestPage.modelKey || !modelKeys.has(page.modelKey)) throw new Error(`Invalid editor page model: ${page.pageKey}`);
+    if (page.pathRule.type === 'fixed' && page.pathRule.value !== manifestPage.path) throw new Error(`Invalid fixed editor path: ${page.pageKey}`);
+    if (page.pathRule.type === 'pattern' && !/^\/(?:[a-z0-9-]+|:[a-z][a-z0-9]*)(?:\/(?:[a-z0-9-]+|:[a-z][a-z0-9]*))*$/.test(page.pathRule.value)) {
+      throw new Error(`Invalid editor path rule: ${page.pageKey}`);
+    }
+    if (page.pathRule.type === 'pattern') {
+      const params = [...page.pathRule.value.matchAll(/:([a-z][a-z0-9]*)/g)].map(([, name]) => name);
+      if (new Set(params).size !== params.length) throw new Error(`Duplicate editor path parameter: ${page.pageKey}`);
+    }
+    unique(page.sections, `editor section reference in ${page.pageKey}`);
+    for (const section of page.sections) if (!sectionKeys.has(section)) throw new Error(`Unknown editor section: ${section}`);
+  }
+  for (const section of editor.sections) {
+    unique(section.allowedPages, `allowed page in ${section.type}`);
+    for (const page of section.allowedPages) if (!pageKeys.has(page)) throw new Error(`Unknown section page: ${page}`);
+    for (const prop of Object.values(section.props)) {
+      if (prop.control === 'enum' && (!Array.isArray(prop.options) || prop.options.length === 0)) throw new Error(`Enumeration options required: ${section.type}`);
+    }
+  }
+  for (const migration of manifest.compatibility.migrations ?? []) {
+    if (migration.to !== `${manifest.id}@${manifest.version}`) throw new Error(`Invalid migration target: ${migration.to}`);
+    if (!migration.from.startsWith(`${manifest.id}@`)) throw new Error(`Invalid migration source: ${migration.from}`);
+    if (migration.from === migration.to) throw new Error('Invalid migration identity');
+  }
+}
+
 export async function validateManifest(manifest, root) {
   if (!checkSchema(manifest)) throw new Error(`Invalid manifest: ${new Ajv().errorsText(checkSchema.errors)}`);
   if (!manifest.presentation && !(manifest.id === 'aeroframe' && manifest.version === '1.0.0')) {
     throw new Error('Invalid manifest: presentation is required for public releases');
   }
+  const legacy = (manifest.id === 'aeroframe' && ['1.0.0', '1.0.1', '1.0.2', '1.0.3'].includes(manifest.version)) ||
+    (manifest.id === 'fireguard' && manifest.version === '1.0.0');
+  if (!legacy || manifest.editor || manifest.renderer) validateEditorContract(manifest);
   const models = new Set(manifest.models.map(({ key }) => key));
   unique(manifest.models.map(({ key }) => key), 'model key');
   for (const model of manifest.models) {

@@ -12,7 +12,11 @@
     "compatibility": {
       "type": "object", "additionalProperties": false,
       "required": ["cmsSchema", "releaseSchema"],
-      "properties": { "cmsSchema": { "const": 1 }, "releaseSchema": { "const": 1 } }
+      "properties": {
+        "cmsSchema": { "const": 1 },
+        "releaseSchema": { "const": 1 },
+        "migrations": { "type": "array", "items": { "$ref": "#/definitions/migration" } }
+      }
     },
     "presentation": {
       "type": "object", "additionalProperties": false, "required": ["theme", "demo"],
@@ -35,6 +39,8 @@
         } }
       }
     },
+    "editor": { "$ref": "#/definitions/editor" },
+    "renderer": { "$ref": "#/definitions/renderer" },
     "models": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/model" } },
     "pages": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/page" } },
     "assets": { "type": "array", "items": { "$ref": "#/definitions/asset" } }
@@ -82,6 +88,123 @@
         "checksum": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
         "mimeType": { "enum": ["image/png", "image/jpeg", "image/webp", "image/gif", "image/avif"] }
       }
-    }
+    },
+    "editor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "models", "pages", "sections", "operations"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "models": { "type": "array", "items": { "$ref": "#/definitions/editorModel" } },
+        "pages": { "type": "array", "items": { "$ref": "#/definitions/editorPage" } },
+        "sections": { "type": "array", "items": { "$ref": "#/definitions/editorSection" } },
+        "operations": {
+          "type": "object", "additionalProperties": false,
+          "required": ["canCreatePages", "canEditNavigation", "canPublish"],
+          "properties": {
+            "canCreatePages": { "type": "boolean" },
+            "canEditNavigation": { "type": "boolean" },
+            "canPublish": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "editorModel": {
+      "type": "object", "additionalProperties": false,
+      "required": ["modelKey", "fields"],
+      "properties": {
+        "modelKey": { "$ref": "#/definitions/key" },
+        "fields": { "type": "array", "items": { "$ref": "#/definitions/editorField" } }
+      }
+    },
+    "editorField": {
+      "type": "object", "additionalProperties": false,
+      "required": ["key", "label", "control"],
+      "properties": {
+        "key": { "$ref": "#/definitions/key" },
+        "label": { "$ref": "#/definitions/nonempty" },
+        "control": { "enum": ["text", "number", "boolean", "date", "enum", "media", "reference", "rich-text", "array", "widget"] },
+        "group": { "$ref": "#/definitions/nonempty" },
+        "description": { "type": "string" },
+        "default": {},
+        "required": { "type": "boolean" },
+        "visibleWhen": {
+          "type": "object", "additionalProperties": false,
+          "required": ["field", "equals"],
+          "properties": { "field": { "$ref": "#/definitions/key" }, "equals": {} }
+        }
+      }
+    },
+    "editorPage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["pageKey", "modelKey", "pathRule", "allowNavigation", "sections"],
+      "properties": {
+        "pageKey": { "$ref": "#/definitions/key" },
+        "modelKey": { "$ref": "#/definitions/key" },
+        "pathRule": { "$ref": "#/definitions/pathRule" },
+        "allowNavigation": { "type": "boolean" },
+        "sections": { "type": "array", "items": { "$ref": "#/definitions/key" } }
+      }
+    },
+    "pathRule": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "value"],
+      "properties": {
+        "type": { "enum": ["fixed", "pattern"] },
+        "value": { "$ref": "#/definitions/nonempty" }
+      }
+    },
+    "editorSection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "label", "allowedPages", "singleton", "required", "props"],
+      "properties": {
+        "type": { "$ref": "#/definitions/key" },
+        "label": { "$ref": "#/definitions/nonempty" },
+        "description": { "type": "string" },
+        "allowedPages": { "type": "array", "items": { "$ref": "#/definitions/key" } },
+        "singleton": { "type": "boolean" },
+        "required": { "type": "boolean" },
+        "props": { "type": "object", "additionalProperties": { "$ref": "#/definitions/sectionProp" } }
+      }
+    },
+    "sectionProp": {
+      "type": "object", "additionalProperties": false,
+      "required": ["control"],
+      "properties": {
+        "control": { "enum": ["text", "number", "boolean", "date", "enum", "media", "reference", "rich-text", "array", "widget"] },
+        "required": { "type": "boolean" },
+        "description": { "type": "string" },
+        "default": {},
+        "options": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "renderer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contractVersion", "templateId", "templateVersion", "preview", "assets"],
+      "properties": {
+        "contractVersion": { "const": 1 },
+        "templateId": { "$ref": "#/definitions/identifier" },
+        "templateVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "preview": {
+          "type": "object", "additionalProperties": false,
+          "required": ["protocolVersion", "capabilities"],
+          "properties": { "protocolVersion": { "const": 1 }, "capabilities": { "type": "array", "items": { "enum": ["select-node", "hover-node", "scroll-to-node"] } } }
+        },
+        "assets": {
+          "type": "object", "additionalProperties": false,
+          "required": ["mode", "basePath"],
+          "properties": { "mode": { "enum": ["published", "embedded"] }, "basePath": { "type": "string", "pattern": "^/" } }
+        }
+      }
+    },
+    "migration": {
+      "type": "object", "additionalProperties": false,
+      "required": ["from", "to", "steps"],
+      "properties": {
+        "from": { "$ref": "#/definitions/templateIdentity" },
+        "to": { "$ref": "#/definitions/templateIdentity" },
+        "steps": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["operation"], "properties": { "operation": { "enum": ["rename-field", "set-default", "transform" ] }, "from": { "$ref": "#/definitions/key" }, "to": { "$ref": "#/definitions/key" }, "value": {} } } }
+      }
+    },
+    "templateIdentity": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*@[0-9]+\\.[0-9]+\\.[0-9]+$" }
   }
 }

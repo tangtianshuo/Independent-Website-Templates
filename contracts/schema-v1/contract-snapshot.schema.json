@@ -1,0 +1,290 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cms.local/contracts/contract-snapshot-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "schemaVersion",
+    "workspaceId",
+    "siteId",
+    "language",
+    "template",
+    "pages",
+    "navigation",
+    "redirects",
+    "assets"
+  ],
+  "properties": {
+    "contractVersion": {
+      "const": 1
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "workspaceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "siteId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "language": {
+      "type": "string",
+      "minLength": 1
+    },
+    "template": {
+      "$ref": "#/$defs/template"
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/page"
+      }
+    },
+    "navigation": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/navigation"
+      }
+    },
+    "redirects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/redirect"
+      }
+    },
+    "operations": {
+      "type": "object"
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/asset"
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "path": {
+      "type": "string",
+      "pattern": "^\\/(?:[^/?#\\\\%\\u0000-\\u001f\\u007f]+(?:\\/[^/?#\\\\%\\u0000-\\u001f\\u007f]+)*)?$"
+    },
+    "template": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        }
+      }
+    },
+    "pageTemplate": {
+      "type": "object",
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        }
+      },
+      "additionalProperties": true
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "pageKey",
+        "entryId",
+        "content"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "pageKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entryId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content": {
+          "$ref": "#/$defs/content"
+        },
+        "layoutDocument": {
+          "type": "object"
+        }
+      }
+    },
+    "content": {
+      "type": "object",
+      "required": [
+        "kind",
+        "view",
+        "preset",
+        "sections",
+        "seo"
+      ],
+      "properties": {
+        "kind": {
+          "const": "preset-page"
+        },
+        "view": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preset": {
+          "$ref": "#/$defs/pageTemplate"
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sectionConfigs": {
+          "type": "array"
+        },
+        "seo": {
+          "type": "object",
+          "required": [
+            "title",
+            "description"
+          ],
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          }
+        },
+        "items": {
+          "type": "array"
+        },
+        "operations": {
+          "type": "object"
+        },
+        "layoutDocument": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "navigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "children",
+        "enabled"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "href": {
+          "$ref": "#/$defs/path"
+        },
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/navigation"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "redirect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/path"
+        },
+        "to": {
+          "$ref": "#/$defs/path"
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "checksum",
+        "mimeType"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "mimeType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^/_assets/[^?#]+$"
+        },
+        "mediaId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourcePath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contentBase64": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
