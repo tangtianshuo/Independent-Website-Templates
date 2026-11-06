@@ -63,7 +63,7 @@ jobs:
       - run: npm run build
         working-directory: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront
       - name: Exercise selected renderer and private preview
-        run: npm run test:runtime
+        run: npm run test:release:runtime
       - name: Build preview bundle
         env:
           PREVIEW_APP_BASE_URL: /preview/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/
@@ -168,35 +168,13 @@ jobs:
           SOURCE_COMMIT: ${{ github.sha }}
           RELEASE_IMAGE: ghcr.io/tangtianshuo/independent-website-templates/${{ needs.metadata.outputs.template_id }}@${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
         run: node --test test/image.test.mjs
-      - name: Build and publish immutable preview bundle
+      - name: Resolve, verify or publish immutable preview bundle
+        id: preview
         env:
-          PREVIEW_APP_BASE_URL: /preview/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/
+          TEMPLATE_VERSION: ${{ needs.metadata.outputs.version }}
           NUXT_PUBLIC_PREVIEW_ADMIN_ORIGIN: ${{ vars.CMS_ORIGIN }}
           SOURCE_COMMIT: ${{ github.sha }}
-        run: |
-          npm ci
-          export MANIFEST_CHECKSUM="$(node --input-type=module -e 'import {readFileSync} from "node:fs"; import {canonicalChecksum} from "../../../../scripts/validate.mjs"; console.log(`sha256:${canonicalChecksum(JSON.parse(readFileSync("../template.json","utf8")))}`)')"
-          npm run build:preview
-          rm -rf "$RUNNER_TEMP/preview-bundle"
-          node ../../../../scripts/preview-bundle.mjs \
-            --public-dir .output/public \
-            --output-dir "$RUNNER_TEMP/preview-bundle" \
-            --template-id "${{ needs.metadata.outputs.template_id }}" \
-            --template-version "${{ needs.metadata.outputs.version }}"
-          tar --format=ustar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner \
-            -czf "$RUNNER_TEMP/preview-bundle.tar.gz" -C "$RUNNER_TEMP/preview-bundle" .
-          bundle_repository="ghcr.io/tangtianshuo/independent-website-preview-bundles/${{ needs.metadata.outputs.template_id }}"
-          docker run --rm -v "$RUNNER_TEMP:/workspace" -w /workspace \
-            -v "${DOCKER_CONFIG:-$HOME/.docker}/config.json:/auth/config.json:ro" ghcr.io/oras-project/oras:v1.2.3 \
-            push "$bundle_repository" preview-bundle.tar.gz --registry-config /auth/config.json \
-            --artifact-type application/vnd.bcms.preview.bundle.v1 \
-            --annotation org.opencontainers.image.created=1970-01-01T00:00:00Z \
-            --annotation "org.opencontainers.image.revision=$SOURCE_COMMIT" \
-            --format 'go-template={{.digest}}' > "$RUNNER_TEMP/preview-digest.txt"
-          echo "bundle_digest=$(node -p "require('$RUNNER_TEMP/preview-bundle/preview-bundle.json').bundleDigest")" >> "$GITHUB_OUTPUT"
-          echo "artifact_digest=$(cat "$RUNNER_TEMP/preview-digest.txt")" >> "$GITHUB_OUTPUT"
-        id: preview
-        working-directory: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront
+        run: node scripts/preview-publication.mjs
       - name: Append immutable registry record
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -204,7 +182,7 @@ jobs:
           IMAGE_DIGEST: ${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
           PREVIEW_BUNDLE_DIGEST: ${{ steps.preview.outputs.bundle_digest }}
           PREVIEW_ARTIFACT_DIGEST: ${{ steps.preview.outputs.artifact_digest }}
-          PREVIEW_ADAPTER_VERSION: '1'
+          PREVIEW_ADAPTER_VERSION: ${{ steps.preview.outputs.adapter_version }}
           SOURCE_COMMIT: ${{ github.sha }}
         run: node scripts/release-registry.mjs
       - name: Synchronize released template image to server

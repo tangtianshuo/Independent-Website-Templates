@@ -14,6 +14,7 @@
     "validate:1.0.2": "node scripts/validate.mjs templates/aeroframe/1.0.2/template.json",
     "validate:1.0.3": "node scripts/validate.mjs templates/aeroframe/1.0.3/template.json",
     "test:runtime": "TEST_BUILT_TEMPLATE=1 node --test test/runtime.test.mjs",
+    "test:release:runtime": "node scripts/release-runtime.mjs",
     "test:contract": "node --test test/contract.test.mjs test/contract/*.test.mjs",
     "validate:1.0.4": "node scripts/validate.mjs templates/aeroframe/1.0.4/template.json",
     "validate:fireguard:1.0.1": "node scripts/validate.mjs templates/fireguard/1.0.1/template.json",

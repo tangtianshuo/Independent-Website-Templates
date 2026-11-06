@@ -25,8 +25,14 @@ async function start(t, storefront, env) {
   for(let i=0;i<200;i++) { if(child.exitCode!==null)throw new Error(logs);try{if((await fetch(`${base}/healthz`)).ok)return base;}catch{}await new Promise(resolve=>setTimeout(resolve,25)); }
   throw new Error(`Runtime did not start: ${logs}`);
 }
-for (const [id,version,prefix] of [['aeroframe','1.0.4','aero'],['fireguard','1.0.1','fire']]) {
-  test(`${id} built runtime reads artifacts and fails closed without control-plane fallback`, {skip:process.env.TEST_BUILT_CONTRACT !== '1' ? 'Set TEST_BUILT_CONTRACT=1 after building both new storefronts' : false,timeout:30000},async t=>{
+const selectedId = process.env.TEMPLATE_ID, selectedVersion = process.env.TEMPLATE_VERSION;
+if (selectedId || selectedVersion) {
+  assert.match(selectedId || '', /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+  assert.match(selectedVersion || '', /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/);
+}
+const targets = selectedId ? [[selectedId, selectedVersion, selectedId === 'fireguard' ? 'fire' : 'aero']] : [['aeroframe','1.0.4','aero'],['fireguard','1.0.1','fire']];
+for (const [id,version,prefix] of targets) {
+  test(`${id}@${version} built runtime reads artifacts and fails closed without control-plane fallback`, {skip:process.env.TEST_BUILT_CONTRACT !== '1' ? 'Set TEST_BUILT_CONTRACT=1 after building the selected storefront(s)' : false,timeout:30000},async t=>{
     const templateRoot=new URL(`../../templates/${id}/${version}/`,import.meta.url).pathname;
     const manifest=JSON.parse(await readFile(join(templateRoot,'template.json'),'utf8'));
     const contract=contractFixture();contract.template={id,version};

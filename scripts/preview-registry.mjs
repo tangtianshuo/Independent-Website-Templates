@@ -21,11 +21,17 @@ export function validPreviewRecord(record) {
         record.protocolVersion === 1 && record.status === 'available';
 }
 
-export function appendPreviewRecord(registry, incoming) {
+export function validatePreviewRegistry(registry) {
     if (!registry || registry.schemaVersion !== 1 || !Array.isArray(registry.records) ||
         Object.keys(registry).some(key => !['schemaVersion', 'records'].includes(key)) ||
         registry.records.some(record => !validPreviewRecord(record)) ||
-        new Set(registry.records.map(record => `${record.id}@${record.version}`)).size !== registry.records.length || !validPreviewRecord(incoming)) throw new Error('Invalid preview registry record');
+        new Set(registry.records.map(record => `${record.id}@${record.version}`)).size !== registry.records.length) throw new Error('Invalid preview registry record');
+    return registry;
+}
+
+export function appendPreviewRecord(registry, incoming) {
+    validatePreviewRegistry(registry);
+    if (!validPreviewRecord(incoming)) throw new Error('Invalid preview registry record');
     const existing = registry.records.find(record => record.id === incoming.id && record.version === incoming.version);
     if (existing) {
         if (!isDeepStrictEqual(existing, incoming)) throw new Error('Published preview version conflict');
