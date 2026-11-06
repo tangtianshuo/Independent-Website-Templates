@@ -11,7 +11,7 @@ export default defineNuxtConfig({
     siteId: '',
     siteCredential: '',
     publishedSnapshotPath: process.env.PUBLISHED_SNAPSHOT_PATH || '',
-    public: { previewAdminOrigin: '', leadEndpoint: process.env.NUXT_PUBLIC_LEAD_ENDPOINT || '' },
+    public: { previewAdminOrigin: '', ingestOrigin: process.env.NUXT_PUBLIC_INGEST_ORIGIN || '' },
     releaseId: process.env.RELEASE_ID || '',
   },
 });

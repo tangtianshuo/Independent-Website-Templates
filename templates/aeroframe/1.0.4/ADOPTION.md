@@ -11,7 +11,7 @@ Build with `npm ci && npm run build` in `storefront/`. Mount the immutable
 ContractSnapshotV1 JSON read-only, set `PUBLISHED_SNAPSHOT_PATH`,
 `NUXT_WORKSPACE_ID` and `NUXT_SITE_ID`, and run `.output/server/index.mjs`.
 Public page and asset routes read the local artifact. Missing or invalid artifacts
-fail closed without contacting CMS or Gateway. `NUXT_PUBLIC_LEAD_ENDPOINT` is a
+fail closed without contacting CMS or Gateway. `NUXT_PUBLIC_INGEST_ORIGIN` is a
 public ingest origin where the renderer supports the contact form.
 
 ## Private preview

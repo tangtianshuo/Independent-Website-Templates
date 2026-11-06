@@ -10,18 +10,11 @@ const menuOpen = ref(false);
 const collectionPath = computed(() => published.value.links.collection);
 const companyPath = computed(() => published.value.links.company);
 const runtimeConfig = useRuntimeConfig();
-const leadEnabled = computed(() => content.value.operations?.contactFormEnabled === true && !!published.value.siteId && !!runtimeConfig.public.leadEndpoint);
+const leadEnabled = computed(() => !props.preview && content.value.operations?.contactFormEnabled === true && !!published.value.siteId && !!runtimeConfig.public.ingestOrigin);
 const quoteHref = computed(() => demo.value.contactEmail ? `mailto:${encodeURIComponent(demo.value.contactEmail)}?subject=Project%20inquiry` : 'mailto:');
 const quoteActionHref = computed(() => leadEnabled.value ? '#contact-form' : quoteHref.value);
-onMounted(() => {
-  if (props.preview || !published.value.siteId || !runtimeConfig.public.leadEndpoint || typeof window === 'undefined') return;
-  const storageKey = `aero-visitor:${published.value.siteId}`;
-  const visitorId = localStorage.getItem(storageKey) || (crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`);
-  localStorage.setItem(storageKey, visitorId);
-  const payload = { siteId: published.value.siteId, eventId: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`, path: window.location.pathname, referrer: document.referrer || undefined, device: window.innerWidth < 700 ? 'mobile' : 'desktop', visitorId, sessionId: sessionStorage.getItem('aero-session') || visitorId };
-  sessionStorage.setItem('aero-session', payload.sessionId);
-  void $fetch(`${runtimeConfig.public.leadEndpoint.replace(/\/$/, '')}/api/v1/sites/${encodeURIComponent(published.value.siteId)}/events`, { method: 'POST', body: payload }).catch(() => undefined);
-});
+const { $trackPageView } = useNuxtApp();
+onMounted(() => { watch(() => `${published.value.siteId}:${published.value.path}`, () => $trackPageView(published.value, !!props.preview), { immediate: true }); });
 const themeStyle = computed(() => ({ '--aero-bg': content.value.preset.theme.background,
   '--aero-fg': content.value.preset.theme.foreground, '--aero-blue': content.value.preset.theme.accent,
   '--aero-muted': content.value.preset.theme.muted, '--aero-font': content.value.preset.theme.font }));
@@ -59,7 +52,7 @@ useHead(() => ({ htmlAttrs: { lang: published.value.language }, title: content.v
         <section v-if="showcase?.solutions?.length" class="aero-solutions aero-wrap"><div class="aero-section-heading"><div><p class="aero-kicker">MISSION PROFILES</p><h2>One system. More ways to work.</h2></div><span class="aero-muted">01 — 03 / APPLICATIONS</span></div><div class="aero-solution-grid"><article v-for="(solution, index) in showcase.solutions" :key="solution.title" class="aero-solution-card"><img :src="solution.image" :alt="solution.title" loading="lazy"><div><p class="aero-kicker">MISSION / 0{{ index + 1 }}</p><h3>{{ solution.title }}</h3><p>{{ solution.description }}</p><a :href="quoteActionHref">Discuss this mission <span aria-hidden="true">↗</span></a></div></article></div></section>
         <section class="aero-story"><div class="aero-story__image" :style="{ backgroundImage: `url('${demo.page.image}')` }"></div><div class="aero-story__content"><p class="aero-kicker">ENGINEERED FOR REAL OPERATIONS</p><h2>Confidence from takeoff to touchdown.</h2><p>{{ demo.page.body }}</p><NuxtLink :to="companyPath">Our approach →</NuxtLink></div></section>
         <section class="aero-faq aero-wrap"><div><p class="aero-kicker">SUPPORT &amp; OPERATIONS</p><h2>Questions from the field.</h2><p>Clear answers for teams evaluating their next aerial system.</p></div><div class="aero-faq__list"><details v-for="faq in showcase?.faq" :key="faq.question"><summary>{{ faq.question }}<span aria-hidden="true">+</span></summary><p>{{ faq.answer }}</p></details></div></section>
-        <section id="contact" class="aero-contact aero-wrap"><div><p class="aero-kicker">START A CONVERSATION</p><h2>Tell us what the mission demands.</h2></div><a v-if="!leadEnabled" class="aero-button aero-button--primary" :href="quoteHref">Request a quote ↗</a><LeadForm v-else :site-id="published.siteId" :endpoint="runtimeConfig.public.leadEndpoint" /></section>
+        <section id="contact" class="aero-contact aero-wrap"><div><p class="aero-kicker">START A CONVERSATION</p><h2>Tell us what the mission demands.</h2></div><a v-if="!leadEnabled" class="aero-button aero-button--primary" :href="quoteHref">Request a quote ↗</a><LeadForm v-else :site-id="published.siteId" :endpoint="runtimeConfig.public.ingestOrigin" /></section>
       </template>
       </template>
     </main>

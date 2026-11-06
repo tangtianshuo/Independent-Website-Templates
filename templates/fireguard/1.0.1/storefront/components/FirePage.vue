@@ -9,7 +9,11 @@ const view = computed(() => content.value.view);
 const menuOpen = ref(false);
 const collectionPath = computed(() => published.value.links.collection);
 const companyPath = computed(() => published.value.links.company);
+const runtimeConfig = useRuntimeConfig();
+const leadEnabled = computed(() => !props.preview && content.value.operations?.contactFormEnabled === true && !!published.value.siteId && !!runtimeConfig.public.ingestOrigin);
 const quoteHref = computed(() => demo.value.contactEmail ? `mailto:${encodeURIComponent(demo.value.contactEmail)}?subject=Fire%20equipment%20inquiry` : companyPath.value);
+const { $trackPageView } = useNuxtApp();
+onMounted(() => { watch(() => `${published.value.siteId}:${published.value.path}`, () => $trackPageView(published.value, !!props.preview), { immediate: true }); });
 const themeStyle = computed(() => ({ '--fire-bg': content.value.preset.theme.background,
   '--fire-fg': content.value.preset.theme.foreground, '--fire-accent': content.value.preset.theme.accent,
   '--fire-muted': content.value.preset.theme.muted, '--fire-font': content.value.preset.theme.font }));
@@ -47,7 +51,7 @@ useHead(() => ({ htmlAttrs: { lang: published.value.language }, title: content.v
         <section v-if="showcase?.solutions?.length" class="fire-solutions fire-wrap"><div class="fire-section-heading"><div><p class="fire-kicker">应用场景</p><h2>围绕空间，配置所需设备</h2></div><span class="fire-muted">场景 / 设备 / 管理</span></div><div class="fire-solution-grid"><article v-for="(solution, index) in showcase.solutions" :key="solution.title" class="fire-solution-card"><img :src="solution.image" :alt="solution.title" loading="lazy"><div><p class="fire-kicker">场景 / 0{{ index + 1 }}</p><h3>{{ solution.title }}</h3><p>{{ solution.description }}</p><a :href="quoteHref">咨询场景配备 <span aria-hidden="true">↗</span></a></div></article></div></section>
         <section class="fire-story"><div class="fire-story__image" :style="{ backgroundImage: `url('${demo.page.image}')` }"></div><div class="fire-story__content"><p class="fire-kicker">关注设备的整个使用周期</p><h2>让设备选型与日常管理更加清晰。</h2><p>{{ demo.page.body }}</p><NuxtLink :to="companyPath">了解我们 →</NuxtLink></div></section>
         <section class="fire-faq fire-wrap"><div><p class="fire-kicker">选型与维护</p><h2>采购前，你可能关心这些</h2><p>从使用环境、采购清单到维护记录，逐项梳理需求。</p></div><div class="fire-faq__list"><details v-for="faq in showcase?.faq" :key="faq.question"><summary>{{ faq.question }}<span aria-hidden="true">+</span></summary><p>{{ faq.answer }}</p></details></div></section>
-        <section id="contact" class="fire-contact fire-wrap"><div><p class="fire-kicker">从需求开始</p><h2>告诉我们，你的场所需要什么。</h2></div><a class="fire-button fire-button--primary" :href="quoteHref">咨询选型 ↗</a></section>
+        <section id="contact" class="fire-contact fire-wrap"><div><p class="fire-kicker">从需求开始</p><h2>告诉我们，你的场所需要什么。</h2></div><a v-if="!leadEnabled" class="fire-button fire-button--primary" :href="quoteHref">咨询选型 ↗</a><LeadForm v-else :site-id="published.siteId" :endpoint="runtimeConfig.public.ingestOrigin" /></section>
       </template>
       </template>
     </main>
