@@ -1,3 +1,4 @@
+import { richNodes } from './rich-content.mjs';
 const route = /^\/(?:[^/?#\\%\x00-\x1f\x7f]+(?:\/[^/?#\\%\x00-\x1f\x7f]+)*)?$/;
 export const safePath = (path) => typeof path === 'string' && route.test(path) &&
   !/^\/(?:api|_nuxt|__nuxt_error|healthz|preview)(?:\/|$)/i.test(path) &&
@@ -117,7 +118,7 @@ function mediaValue(value, assets, preview, enabled = true) {
       asset.url !== undefined && asset.url !== '/_assets/' + asset.path) return undefined;
   return '/_assets/' + asset.path;
 }
-function sectionValues(content, pageLayout, assets, preview) {
+function sectionValues(content, pageLayout, assets, preview, paths) {
   const layout = pageLayout ?? content.layoutDocument;
   const values = structuredClone(layout ? layout.root.map(node => ({ type: node.type, enabled: node.enabled, data: node.props })) : content.sectionConfigs);
   if (!values) return { sections: content.sections, preset: content.preset };
@@ -129,6 +130,7 @@ function sectionValues(content, pageLayout, assets, preview) {
     for (const [key, value] of Object.entries(section.data)) {
       const control = declared[key];
       if (!control || control === 'boolean' && typeof value !== 'boolean' || control === 'text' && typeof value !== 'string' || control === 'number' && (!Number.isInteger(value) || value < 1) || control === 'rich-text' && typeof value !== 'string' && !object(value) && !Array.isArray(value)) return null;
+      if (control === 'rich-text' && !richNodes(value, paths)) return null;
       if (control === 'media') {
         const resolved = mediaValue(value, assets, preview, section.enabled);
         if (resolved === undefined) return null;
@@ -137,6 +139,7 @@ function sectionValues(content, pageLayout, assets, preview) {
     }
   }
   const preset = structuredClone(content.preset);
+  let richBody;
   let columns;
   let showHeroButton = true;
   let heroButtonHref;
@@ -148,14 +151,15 @@ function sectionValues(content, pageLayout, assets, preview) {
     if (type === 'grid') columns = data.columns ?? 3;
     if (type === 'gallery' && data.image !== undefined) preset.demo.product.image = data.image;
     if (type === 'information') { if (data.title !== undefined) preset.demo.product.title = data.title; if (data.price !== undefined) preset.demo.product.price = data.price; }
-    if (type === 'description' && data.body !== undefined) preset.demo.product.description = richText(data.body);
-    if (type === 'story') { if (data.title !== undefined) preset.demo.page.title = data.title; if (data.body !== undefined) preset.demo.page.body = richText(data.body); if (data.image !== undefined) preset.demo.page.image = data.image; }
+    if (type === 'description' && data.body !== undefined) { preset.demo.product.description = richText(data.body); richBody=richNodes(data.body,paths); }
+    if (type === 'story') { if (data.title !== undefined) preset.demo.page.title = data.title; if (data.body !== undefined) { preset.demo.page.body = richText(data.body); richBody=richNodes(data.body,paths); } if (data.image !== undefined) preset.demo.page.image = data.image; }
   }
-  return { sections: values.filter(value => value.enabled).map(value => value.type), preset, showHeroButton, heroButtonHref, ...(columns ? { columns } : {}) };
+  return { ...(richBody ? { richBody } : {}), sections: values.filter(value => value.enabled).map(value => value.type), preset, showHeroButton, heroButtonHref, ...(columns ? { columns } : {}) };
 }
 
 export function snapshotPage(snapshot, path, { preview = false } = {}) {
   if (!safePath(path) || !matches(snapshot, snapshotShape) || !snapshot.workspaceId || !snapshot.siteId || !snapshot.language) return null;
+  const richPaths = new Set([...snapshot.pages.map(page=>page.path),...snapshot.redirects.map(redirect=>redirect.from)]);
   const pages = new Map();
   for (const page of snapshot.pages) {
     const { view, preset, sections } = page.content;
@@ -163,7 +167,7 @@ export function snapshotPage(snapshot, path, { preview = false } = {}) {
         !Object.hasOwn(sectionOptions, view) || !safeTheme(preset.theme) ||
         new Set(sections).size !== sections.length || sections.some((section) => !sectionOptions[view].includes(section)) ||
         !page.content.seo.title) return null;
-    if (!sectionValues(page.content, page.layoutDocument, snapshot.assets, preview)) return null;
+    if (!sectionValues(page.content, page.layoutDocument, snapshot.assets, preview, richPaths)) return null;
     pages.set(page.path, page);
   }
   const page = pages.get(path);
@@ -173,7 +177,7 @@ export function snapshotPage(snapshot, path, { preview = false } = {}) {
       ? { redirect: redirect.to } : null;
   }
   const { view, seo, items = [] } = page.content;
-  const { preset, sections, columns, showHeroButton, heroButtonHref } = sectionValues(page.content, page.layoutDocument, snapshot.assets, preview);
+  const { preset, sections, columns, showHeroButton, heroButtonHref, richBody } = sectionValues(page.content, page.layoutDocument, snapshot.assets, preview, richPaths);
   const publicOperations = (value) => value && typeof value === 'object' ? {
     ...(typeof value.seoTitle === 'string' ? { seoTitle: value.seoTitle } : {}),
     ...(typeof value.seoDescription === 'string' ? { seoDescription: value.seoDescription } : {}),
@@ -188,7 +192,7 @@ export function snapshotPage(snapshot, path, { preview = false } = {}) {
     links: { home: snapshot.pages.find((item) => item.content.view === 'home')?.path || '/',
       collection: snapshot.pages.find((item) => item.content.view === 'collection')?.path || '/',
       company: snapshot.pages.find((item) => item.content.view === 'page')?.path || '/' },
-    content: { view, ...(showHeroButton !== undefined ? { showHeroButton } : {}), ...(heroButtonHref !== undefined ? { heroButtonHref } : {}), ...(columns ? { columns } : {}), preset: { theme: preset.theme, demo: preset.demo, showcase: preset.showcase }, sections, seo,
+    content: { view, ...(richBody ? { richBody } : {}), ...(showHeroButton !== undefined ? { showHeroButton } : {}), ...(heroButtonHref !== undefined ? { heroButtonHref } : {}), ...(columns ? { columns } : {}), preset: { theme: preset.theme, demo: preset.demo, showcase: preset.showcase }, sections, seo,
       ...(operations && Object.keys(operations).length ? { operations } : {}) },
     navigation: snapshot.navigation.filter((item) => pages.has(item.path)).map(({ label, path }) => ({ label, path })),
     items: items.filter((item) => pages.has(item.path)).map(({ label, path, image, description, price }) =>
