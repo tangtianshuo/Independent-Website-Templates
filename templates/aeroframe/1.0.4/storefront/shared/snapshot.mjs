@@ -84,7 +84,7 @@ export function normalizeContractSnapshot(snapshot) {
   try { return { ...snapshot, navigation: navigation(snapshot.navigation) }; } catch { return null; }
 }
 
-const sectionProps = { hero: { title: 'text', image: 'media' }, feature: { eyebrow: 'text' }, heading: { title: 'text' }, grid: { columns: 'number' }, gallery: { image: 'media' }, information: { title: 'text', price: 'text' }, description: { body: 'rich-text' }, story: { title: 'text', body: 'rich-text', image: 'media' } };
+const sectionProps = { hero: { title: 'text', image: 'media', showButton: 'boolean', buttonHref: 'text' }, feature: { eyebrow: 'text' }, heading: { title: 'text' }, grid: { columns: 'number' }, gallery: { image: 'media' }, information: { title: 'text', price: 'text' }, description: { body: 'rich-text' }, story: { title: 'text', body: 'rich-text', image: 'media' } };
 function richText(value) {
   if (typeof value === 'string') return value;
   if (Array.isArray(value)) return value.map(richText).filter(Boolean).join(' ');
@@ -128,7 +128,7 @@ function sectionValues(content, pageLayout, assets, preview) {
     seen.add(section.type);
     for (const [key, value] of Object.entries(section.data)) {
       const control = declared[key];
-      if (!control || control === 'text' && typeof value !== 'string' || control === 'number' && (!Number.isInteger(value) || value < 1) || control === 'rich-text' && typeof value !== 'string' && !object(value) && !Array.isArray(value)) return null;
+      if (!control || control === 'boolean' && typeof value !== 'boolean' || control === 'text' && typeof value !== 'string' || control === 'number' && (!Number.isInteger(value) || value < 1) || control === 'rich-text' && typeof value !== 'string' && !object(value) && !Array.isArray(value)) return null;
       if (control === 'media') {
         const resolved = mediaValue(value, assets, preview, section.enabled);
         if (resolved === undefined) return null;
@@ -138,9 +138,11 @@ function sectionValues(content, pageLayout, assets, preview) {
   }
   const preset = structuredClone(content.preset);
   let columns;
+  let showHeroButton = true;
+  let heroButtonHref;
   for (const { type, enabled, data } of values) {
     if (!enabled) continue;
-    if (type === 'hero') { if (data.title !== undefined) preset.demo.hero.title = data.title; if (data.image !== undefined) preset.demo.hero.image = data.image; }
+    if (type === 'hero') { showHeroButton = data.showButton ?? true; heroButtonHref = data.buttonHref; if (heroButtonHref !== undefined && (typeof heroButtonHref !== 'string' || !/^(?:https?:\/\/|\/(?!\/))/.test(heroButtonHref) || heroButtonHref.includes('\\'))) return null; if (data.title !== undefined) preset.demo.hero.title = data.title; if (data.image !== undefined) preset.demo.hero.image = data.image; }
     if (type === 'feature' && data.eyebrow !== undefined) preset.showcase = { ...preset.showcase, eyebrow: data.eyebrow };
     if (type === 'heading' && data.title !== undefined) preset.demo.collection.title = data.title;
     if (type === 'grid') columns = data.columns ?? 3;
@@ -149,7 +151,7 @@ function sectionValues(content, pageLayout, assets, preview) {
     if (type === 'description' && data.body !== undefined) preset.demo.product.description = richText(data.body);
     if (type === 'story') { if (data.title !== undefined) preset.demo.page.title = data.title; if (data.body !== undefined) preset.demo.page.body = richText(data.body); if (data.image !== undefined) preset.demo.page.image = data.image; }
   }
-  return { sections: values.filter(value => value.enabled).map(value => value.type), preset, ...(columns ? { columns } : {}) };
+  return { sections: values.filter(value => value.enabled).map(value => value.type), preset, showHeroButton, heroButtonHref, ...(columns ? { columns } : {}) };
 }
 
 export function snapshotPage(snapshot, path, { preview = false } = {}) {
@@ -171,7 +173,7 @@ export function snapshotPage(snapshot, path, { preview = false } = {}) {
       ? { redirect: redirect.to } : null;
   }
   const { view, seo, items = [] } = page.content;
-  const { preset, sections, columns } = sectionValues(page.content, page.layoutDocument, snapshot.assets, preview);
+  const { preset, sections, columns, showHeroButton, heroButtonHref } = sectionValues(page.content, page.layoutDocument, snapshot.assets, preview);
   const publicOperations = (value) => value && typeof value === 'object' ? {
     ...(typeof value.seoTitle === 'string' ? { seoTitle: value.seoTitle } : {}),
     ...(typeof value.seoDescription === 'string' ? { seoDescription: value.seoDescription } : {}),
@@ -186,7 +188,7 @@ export function snapshotPage(snapshot, path, { preview = false } = {}) {
     links: { home: snapshot.pages.find((item) => item.content.view === 'home')?.path || '/',
       collection: snapshot.pages.find((item) => item.content.view === 'collection')?.path || '/',
       company: snapshot.pages.find((item) => item.content.view === 'page')?.path || '/' },
-    content: { view, ...(columns ? { columns } : {}), preset: { theme: preset.theme, demo: preset.demo, showcase: preset.showcase }, sections, seo,
+    content: { view, ...(showHeroButton !== undefined ? { showHeroButton } : {}), ...(heroButtonHref !== undefined ? { heroButtonHref } : {}), ...(columns ? { columns } : {}), preset: { theme: preset.theme, demo: preset.demo, showcase: preset.showcase }, sections, seo,
       ...(operations && Object.keys(operations).length ? { operations } : {}) },
     navigation: snapshot.navigation.filter((item) => pages.has(item.path)).map(({ label, path }) => ({ label, path })),
     items: items.filter((item) => pages.has(item.path)).map(({ label, path, image, description, price }) =>

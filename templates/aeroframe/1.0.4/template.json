@@ -715,7 +715,7 @@
     "sections": [
       {
         "type": "hero",
-        "label": "Hero",
+        "label": "首页主视觉",
         "allowedPages": [
           "home"
         ],
@@ -723,16 +723,35 @@
         "required": true,
         "props": {
           "title": {
-            "control": "text"
+            "control": "text",
+            "label": "标题",
+            "required": true,
+            "default": "Built for the missions ahead"
           },
           "image": {
-            "control": "media"
+            "control": "media",
+            "label": "图片"
+          },
+          "showButton": {
+            "control": "boolean",
+            "label": "显示按钮",
+            "default": true
+          },
+          "buttonHref": {
+            "control": "text",
+            "label": "按钮链接",
+            "required": true,
+            "default": "/collections",
+            "visibleWhen": {
+              "field": "showButton",
+              "equals": true
+            }
           }
         }
       },
       {
         "type": "feature",
-        "label": "Feature",
+        "label": "特色介绍",
         "allowedPages": [
           "home"
         ],
@@ -740,13 +759,14 @@
         "required": false,
         "props": {
           "eyebrow": {
-            "control": "text"
+            "control": "text",
+            "label": "引导文字"
           }
         }
       },
       {
         "type": "heading",
-        "label": "Heading",
+        "label": "页面标题",
         "allowedPages": [
           "collections"
         ],
@@ -754,13 +774,14 @@
         "required": true,
         "props": {
           "title": {
-            "control": "text"
+            "control": "text",
+            "label": "标题"
           }
         }
       },
       {
         "type": "grid",
-        "label": "Grid",
+        "label": "商品列表",
         "allowedPages": [
           "collections"
         ],
@@ -769,13 +790,14 @@
         "props": {
           "columns": {
             "control": "number",
-            "default": 3
+            "default": 3,
+            "label": "每行数量"
           }
         }
       },
       {
         "type": "gallery",
-        "label": "Gallery",
+        "label": "商品图片",
         "allowedPages": [
           "product"
         ],
@@ -783,13 +805,14 @@
         "required": true,
         "props": {
           "image": {
-            "control": "media"
+            "control": "media",
+            "label": "图片"
           }
         }
       },
       {
         "type": "information",
-        "label": "Information",
+        "label": "商品信息",
         "allowedPages": [
           "product"
         ],
@@ -797,16 +820,18 @@
         "required": true,
         "props": {
           "title": {
-            "control": "text"
+            "control": "text",
+            "label": "标题"
           },
           "price": {
-            "control": "text"
+            "control": "text",
+            "label": "价格"
           }
         }
       },
       {
         "type": "description",
-        "label": "Description",
+        "label": "商品详情",
         "allowedPages": [
           "product"
         ],
@@ -814,13 +839,14 @@
         "required": false,
         "props": {
           "body": {
-            "control": "rich-text"
+            "control": "rich-text",
+            "label": "正文"
           }
         }
       },
       {
         "type": "story",
-        "label": "Story",
+        "label": "品牌故事",
         "allowedPages": [
           "content"
         ],
@@ -828,13 +854,16 @@
         "required": true,
         "props": {
           "title": {
-            "control": "text"
+            "control": "text",
+            "label": "标题"
           },
           "body": {
-            "control": "rich-text"
+            "control": "rich-text",
+            "label": "正文"
           },
           "image": {
-            "control": "media"
+            "control": "media",
+            "label": "图片"
           }
         }
       }

@@ -171,6 +171,12 @@
       "required": ["control"],
       "properties": {
         "control": { "enum": ["text", "number", "boolean", "date", "enum", "media", "reference", "rich-text", "array", "widget"] },
+        "label": { "$ref": "#/definitions/nonempty" },
+        "visibleWhen": {
+          "type": "object", "additionalProperties": false,
+          "required": ["field", "equals"],
+          "properties": { "field": { "$ref": "#/definitions/key" }, "equals": {} }
+        },
         "required": { "type": "boolean" },
         "description": { "type": "string" },
         "default": {},

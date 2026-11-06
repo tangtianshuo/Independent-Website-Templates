@@ -80,3 +80,21 @@ test('preview handshake announces this immutable manifest identity', async () =>
   assert.ok(shell.includes(`templateId: '${manifest.id}'`));
   assert.ok(shell.includes(`templateVersion: '${manifest.version}'`));
 });
+
+
+test('declared hero button controls preserve layout and reject unsafe links', async () => {
+  const { previewPage } = await import('../shared/snapshot.mjs');
+  const value = structuredClone(snapshot);
+  value.pages[0].path = '/'; value.pages[0].pageKey = 'home';
+  value.pages[0].content.view = 'home'; value.pages[0].content.sections = ['hero', 'feature'];
+  value.pages[0].content.sectionConfigs = [{ type: 'hero', enabled: true, data: { title: 'Edited title', showButton: false, buttonHref: '/catalog' } }, { type: 'feature', enabled: true, data: {} }];
+  const page = previewPage(value, '/');
+  assert.equal(page.content.preset.demo.hero.title, 'Edited title');
+  assert.equal(page.content.showHeroButton, false);
+  assert.equal(page.content.heroButtonHref, '/catalog');
+  value.pages[0].content.sectionConfigs[0].data.buttonHref = 'javascript:alert(1)';
+  assert.equal(previewPage(value, '/'), null);
+  const declaration = manifest.editor.sections.find(section => section.type === 'hero');
+  assert.equal(declaration.props.title.label, '标题');
+  assert.deepEqual(declaration.props.buttonHref.visibleWhen, { field: 'showButton', equals: true });
+});
