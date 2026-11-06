@@ -34,8 +34,8 @@ export async function fetchPublishedPage({ gatewayUrl, workspaceId, siteId, cred
   return publishedPage(await response.json(), workspaceId, siteId, path);
 }
 
-export async function readPublishedPage({ snapshotPath, workspaceId, siteId, path }) {
-  if (!snapshotPath || !workspaceId || !siteId || !safePath(path)) return null;
+export async function readPublishedSnapshot({ snapshotPath, workspaceId, siteId }) {
+  if (!snapshotPath || !workspaceId || !siteId) return null;
   let response;
   try {
     response = JSON.parse(await readFile(snapshotPath, 'utf8'));
@@ -48,7 +48,13 @@ export async function readPublishedPage({ snapshotPath, workspaceId, siteId, pat
   if (response.contractVersion === 1) {
     if (response.workspaceId !== workspaceId || response.siteId !== siteId) return null;
     const snapshot = normalizeContractSnapshot(response);
-    return snapshot ? snapshotPage(snapshot, path) : null;
+    return snapshot && snapshotPage(snapshot, snapshot.pages[0]?.path) ? snapshot : null;
   }
-  return publishedPage(response, workspaceId, siteId, path);
+  return publishedPage(response, workspaceId, siteId, response.snapshot?.pages?.[0]?.path) ? response.snapshot : null;
+}
+
+export async function readPublishedPage(options) {
+  if (!safePath(options.path)) return null;
+  const snapshot = await readPublishedSnapshot(options);
+  return snapshot ? snapshotPage(snapshot, options.path) : null;
 }

@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { createServer } from 'node:http';
+import { createServer, request } from 'node:http';
+function sitemapRequest(base, host = 'shop.example.com') {
+  return new Promise((resolve, reject) => { const req = request(base + '/sitemap.xml', { headers: { host } }, response => { const chunks=[];response.on('data', chunk=>chunks.push(chunk));response.on('end', ()=>resolve(new Response(Buffer.concat(chunks),{status:response.statusCode,headers:response.headers}))); });req.on('error',reject);req.end(); });
+}
 import { mkdtemp, writeFile, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -41,13 +44,15 @@ for (const [id,version,prefix] of [['aeroframe','1.0.4','aero'],['fireguard','1.
     const env={PUBLISHED_SNAPSHOT_PATH:snapshotPath,NUXT_PUBLISHED_SNAPSHOT_PATH:snapshotPath,NUXT_GATEWAY_URL:`http://127.0.0.1:${controlPort}`,NUXT_SITE_CREDENTIAL:'secret-control-credential'};
     const base=await start(t,join(templateRoot,'storefront'),env);
     for(const path of ['/','/catalog','/aircraft','/company']) {const response=await fetch(base+path);assert.equal(response.status,200,path);const html=await response.text();assert.ok(!html.includes('secret-control-credential'));if(path==='/'){assert.ok(html.includes('<h1>Artifact-only headline</h1>'));assert.ok(html.includes(`--${prefix}-hero-image:url(&#39;/_assets/media/hero/original.png&#39;)`));assert.ok(html.indexOf(`class="${prefix}-intro`) < html.indexOf(`class="${prefix}-hero"`));}if(path==='/catalog'){assert.ok(html.includes('<h1>Artifact catalog</h1>'));assert.ok(html.includes(`class="${prefix}-product-grid ${prefix}-product-grid--catalog" style="--catalog-columns:2;"`));assert.ok(html.indexOf(`class="${prefix}-product-grid`) < html.indexOf('<h1>Artifact catalog</h1>'));} }
+    const sitemap=await sitemapRequest(base);assert.equal(sitemap.status,200);assert.match(sitemap.headers.get('content-type'),/application\/xml/);const xml=await sitemap.text();for(const path of ['/','/catalog','/aircraft','/company'])assert.ok(xml.includes(`<loc>https://shop.example.com${path}</loc>`));assert.ok(!xml.includes('/preview'));assert.ok(!xml.includes('/api/'));
+    const invalidHost=await sitemapRequest(base,'bad@host');assert.equal(invalidHost.status,500);
     const redirect=await fetch(base+'/old-catalog',{redirect:'manual'});assert.equal(redirect.status,308);assert.equal(redirect.headers.get('location'),'/catalog');
     const asset=await fetch(base+'/_assets/media/proof/original.txt');assert.equal(asset.status,200);assert.equal(await asset.text(),bytes.toString());assert.equal(asset.headers.get('etag'),checksum);
     const mediaAsset=await fetch(base+'/_assets/media/hero/original.png');assert.equal(mediaAsset.status,200);assert.equal(await mediaAsset.text(),bytes.toString());assert.equal(mediaAsset.headers.get('content-type'),'image/png');
     const preview=await fetch(base+'/preview');assert.equal(preview.status,200);assert.equal(preview.headers.get('cache-control'),'no-store');assert.equal(preview.headers.get('content-security-policy'),'frame-ancestors https://cms.example.com');const shell=await preview.text();assert.match(shell,/Waiting for a private CMS preview/);assert.ok(!shell.includes('Artifact-only headline'));
-    const missing=await start(t,join(templateRoot,'storefront'),{...env,PUBLISHED_SNAPSHOT_PATH:'',NUXT_PUBLISHED_SNAPSHOT_PATH:''});assert.equal((await fetch(missing+'/api/published?path=/')).status,503);
-    await writeFile(snapshotPath,'invalid JSON');assert.equal((await fetch(base+'/api/published?path=/')).status,500);
-    await rm(snapshotPath);assert.equal((await fetch(base+'/api/published?path=/')).status,500);
+    const missing=await start(t,join(templateRoot,'storefront'),{...env,PUBLISHED_SNAPSHOT_PATH:'',NUXT_PUBLISHED_SNAPSHOT_PATH:''});assert.equal((await fetch(missing+'/api/published?path=/')).status,503);assert.equal((await sitemapRequest(missing)).status,503);
+    await writeFile(snapshotPath,'invalid JSON');assert.equal((await sitemapRequest(base)).status,500);assert.equal((await fetch(base+'/api/published?path=/')).status,500);
+    await rm(snapshotPath);assert.equal((await sitemapRequest(base)).status,500);assert.equal((await fetch(base+'/api/published?path=/')).status,500);
     assert.equal(requests,0,'public requests must never contact the control plane');
   });
 }
