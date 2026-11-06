@@ -77,6 +77,15 @@ if (process.env.ROUNDTRIP_CASE === 'routes') {
     entry.meta[0].props.push({id:'body',data:[{nodes:[{type:'paragraph',content:[{type:'text',text:'Mapped rich body',marks:[{type:'bold'}]}]}]}]});
     entry.content=[{lng:'en',nodes:[{type:'bulletList',content:[{type:'listItem',content:[{type:'paragraph',content:[{type:'text',text:'Default rich body',marks:[{type:'italic'},{type:'link',attrs:{href:'/',target:'_self'}}]}]}]}]},{type:'horizontalRule'},{type:'paragraph',content:[{type:'text',text:'Media file',marks:[{type:'link',attrs:{href:'media:hero@*_@*_:media',target:'_blank'}}]}]}],plainText:''}];
   }
+  if (process.env.ROUNDTRIP_CASE === 'rich') {
+    const body=input.entries.find(value=>value.templateId==='content-page').content[0];
+    body.nodes.push({type:'widget',attrs:{data:{props:[{id:'nested',data:[{nodes:[{type:'paragraph',content:[{type:'text',text:'Nested media file',marks:[{type:'link',attrs:{href:'media:hero@*_@*_:media',target:'_self'}}]}]}]}]}]}}});
+    for (const mutate of [value=>{value.media=[];},value=>{value.media[0].siteId='foreign';},value=>{value.media[0].workspaceId='foreign';}]) {
+      const invalid=structuredClone(input);mutate(invalid);
+      assert.throws(()=>buildRelease(invalid),/media/i);
+      assert.throws(()=>buildRelease(invalid,{preserveMediaCapabilities:true}),/media/i);
+    }
+  }
   const snapshot=JSON.parse(JSON.stringify(buildRelease(input)));
   const draft=JSON.parse(JSON.stringify(buildRelease(input,{preserveMediaCapabilities:true})));
   console.log(JSON.stringify({ ...projectReleaseSnapshot(rewriteContractMediaUrls(snapshot,[asset]),[asset]),draft }));

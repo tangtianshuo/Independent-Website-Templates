@@ -17,10 +17,11 @@ export function richNodes(value, paths, depth = 0) {
     if (node.type === 'text') { if (typeof node.text !== 'string') return null;copy.text=node.text; }
     if (node.type === 'heading') { if (!Number.isInteger(node.attrs?.level) || node.attrs.level<1 || node.attrs.level>6) return null;copy.attrs={level:node.attrs.level}; }
     if (node.type === 'widget') {
-      if (!object(node.attrs?.data) || !Array.isArray(node.attrs.data.props)) return null;
+      const normalized = node.attrs === undefined && Array.isArray(node.content);
+      if (!normalized && (!object(node.attrs?.data) || !Array.isArray(node.attrs.data.props))) return null;
       // Widget values are data, never executable HTML. Display their declared textual/rich values in order.
       const values = data => Array.isArray(data) ? data.flatMap(item=> typeof item === 'string' ? [{type:'paragraph',content:[{type:'text',text:item}]}] : object(item) && item.nodes ? item.nodes : object(item) && item.props ? item.props.flatMap(prop=>values(prop.data)) : []) : object(data) && Array.isArray(data.props) ? data.props.flatMap(prop=>values(prop.data)) : object(data) && Array.isArray(data.items) ? data.items.flatMap(item=>item.props.flatMap(prop=>values(prop.data))) : [];
-      const children=richNodes(values(node.attrs.data),paths,depth+1);if(!children)return null;copy.content=children;
+      const children=richNodes(normalized ? node.content : values(node.attrs.data),paths,depth+1);if(!children)return null;copy.content=children;
     } else if (node.content !== undefined) { const children=richNodes(node.content,paths,depth+1);if(!children)return null;copy.content=children; }
     if (node.marks !== undefined) {
       if (!Array.isArray(node.marks)) return null;copy.marks=[];

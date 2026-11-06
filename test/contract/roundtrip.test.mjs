@@ -48,6 +48,8 @@ for (const [id, version] of [['aeroframe', '1.0.4'], ['fireguard', '1.0.1']]) {
         assert.match(publicHtml, /<ul><li><p><a href="\/"[^>]*><em>Default rich body<\/em><\/a><\/p><\/li><\/ul><hr>/);
         assert.match(publicHtml, /href="\/_assets\/media\/hero\/original.png"/);
         assert.match(previewHtml, /href="https:\/\/cms.test\/api\/v4\/media\/hero\/bin\/image\?cap=private-hero-capability"/);
+        assert.match(publicHtml, /<div class="rich-widget"><p><a href="\/_assets\/media\/hero\/original.png"[^>]*>Nested media file<\/a><\/p><\/div>/);
+        assert.match(previewHtml, /<div class="rich-widget"><p><a href="https:\/\/cms.test\/api\/v4\/media\/hero\/bin\/image\?cap=private-hero-capability"[^>]*>Nested media file<\/a><\/p><\/div>/);
         assert.ok(!publicHtml.includes('private-hero-capability'));
       }
       assert.deepEqual(result.pages, ['/', '/collections', '/products/product', '/pages/contact']);
