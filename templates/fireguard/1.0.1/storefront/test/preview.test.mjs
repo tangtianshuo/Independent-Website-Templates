@@ -98,3 +98,13 @@ test('declared hero button controls preserve layout and reject unsafe links', as
   assert.equal(declaration.props.title.label, '标题');
   assert.deepEqual(declaration.props.buttonHref.visibleWhen, { field: 'showButton', equals: true });
 });
+
+
+test('collection heading marker survives actual Vue template compilation', async () => {
+  const { parse, compileTemplate } = await import('@vue/compiler-sfc');
+  const source = await readFile(new URL('../components/FirePage.vue', import.meta.url), 'utf8');
+  const { descriptor } = parse(source);
+  const compiled = compileTemplate({ source: descriptor.template.content, filename: 'FirePage.vue', id: 'heading-marker' });
+  assert.deepEqual(compiled.errors, []);
+  assert.match(compiled.code, /"data-section-type": "heading"/);
+});

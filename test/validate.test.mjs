@@ -248,3 +248,11 @@ test('immutable legacy manifests still validate without editor or renderer contr
   assert.equal(candidate.editor, undefined);
   await validateManifest(candidate, root);
 });
+
+test('number section constraints are typed and only allowed on numeric controls', async t => {
+  const root = await fixture(t);
+  const set = prop => { const candidate = manifest(); candidate.editor.sections[0].props = { count: prop }; return candidate; };
+  await validateManifest(set({ control: 'number', minimum: 1, integer: true }), root);
+  await validateManifest(set({ control: 'number', minimum: -2.5, integer: false }), root);
+  for (const prop of [{ control: 'number', minimum: '1' }, { control: 'number', minimum: Infinity }, { control: 'number', integer: 1 }, { control: 'text', minimum: 1 }, { control: 'text', integer: false }]) await assert.rejects(validateManifest(set(prop), root));
+});

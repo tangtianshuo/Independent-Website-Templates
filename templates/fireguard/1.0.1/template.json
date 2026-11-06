@@ -823,7 +823,9 @@
           "columns": {
             "control": "number",
             "default": 3,
-            "label": "每行数量"
+            "label": "每行数量",
+            "minimum": 1,
+            "integer": true
           }
         }
       },

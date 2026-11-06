@@ -177,10 +177,16 @@
           "required": ["field", "equals"],
           "properties": { "field": { "$ref": "#/definitions/key" }, "equals": {} }
         },
+        "minimum": { "type": "number" },
+        "integer": { "type": "boolean" },
         "required": { "type": "boolean" },
         "description": { "type": "string" },
         "default": {},
         "options": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      },
+      "dependencies": {
+        "minimum": { "properties": { "control": { "const": "number" } } },
+        "integer": { "properties": { "control": { "const": "number" } } }
       }
     },
     "renderer": {
