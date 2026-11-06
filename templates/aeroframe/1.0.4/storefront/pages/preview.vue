@@ -23,7 +23,7 @@ function receive(event: MessageEvent) {
 }
 onMounted(() => {
   window.addEventListener('message', receive);
-  if (adminOrigin && window.parent !== window) window.parent.postMessage({ type: 'storefront:preview-ready', templateId: 'aeroframe', templateVersion: '1.0.4' }, adminOrigin);
+  if (adminOrigin && window.parent !== window) window.parent.postMessage({ type: 'storefront:preview-ready', protocolVersion: 1, templateId: 'aeroframe', templateVersion: '1.0.4' }, adminOrigin);
 });
 onBeforeUnmount(() => { window.removeEventListener('message', receive); clearTimeout(expires); });
 useHead({ title: 'Private CMS preview', meta: [{ name: 'robots', content: 'noindex, nofollow, noarchive' }] });
