@@ -108,3 +108,23 @@ test('collection heading marker survives actual Vue template compilation', async
   assert.deepEqual(compiled.errors, []);
   assert.match(compiled.code, /"data-section-type": "heading"/);
 });
+
+
+test('preview builds disable metadata and payload fetches while public config keeps defaults', async () => {
+  const { loadNuxtConfig } = await import('nuxt/kit');
+  const before = process.env.PREVIEW_APP_BASE_URL;
+  try {
+    process.env.PREVIEW_APP_BASE_URL = '/preview/local/1.0.0/';
+    const preview = await loadNuxtConfig({ cwd: new URL('..', import.meta.url).pathname });
+    assert.equal(preview.experimental.appManifest, false);
+    assert.equal(preview.experimental.payloadExtraction, false);
+    delete process.env.PREVIEW_APP_BASE_URL;
+    const publicConfig = await loadNuxtConfig({ cwd: new URL('..', import.meta.url).pathname });
+    assert.equal(publicConfig.app.baseURL, '/');
+    assert.notEqual(publicConfig.experimental?.appManifest, false);
+    assert.notEqual(publicConfig.experimental?.payloadExtraction, false);
+  } finally {
+    if (before === undefined) delete process.env.PREVIEW_APP_BASE_URL;
+    else process.env.PREVIEW_APP_BASE_URL = before;
+  }
+});

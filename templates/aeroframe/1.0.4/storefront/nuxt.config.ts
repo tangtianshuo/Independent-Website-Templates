@@ -3,6 +3,7 @@ import { fileURLToPath, URL } from 'node:url';
 export default defineNuxtConfig({
   css: ['~/assets/main.css'],
   app: { baseURL: process.env.PREVIEW_APP_BASE_URL || '/' },
+  ...(process.env.PREVIEW_APP_BASE_URL ? { experimental: { appManifest: false, payloadExtraction: false } } : {}),
   alias: { '#preview-shared': fileURLToPath(new URL('./shared', import.meta.url)) },
   nitro: { prerender: { crawlLinks: false, routes: process.env.PREVIEW_APP_BASE_URL ? ['/'] : [] } },
   hooks: { 'pages:extend'(pages) {
