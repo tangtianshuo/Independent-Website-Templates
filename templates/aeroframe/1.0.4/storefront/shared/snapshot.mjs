@@ -159,7 +159,7 @@ function sectionValues(content, pageLayout, assets, preview, paths) {
 
 export function snapshotPage(snapshot, path, { preview = false } = {}) {
   if (!safePath(path) || !matches(snapshot, snapshotShape) || !snapshot.workspaceId || !snapshot.siteId || !snapshot.language) return null;
-  const richPaths = new Set([...snapshot.pages.map(page=>page.path),...snapshot.redirects.map(redirect=>redirect.from)]);
+  const richPaths = new Set([...snapshot.pages.map(page=>page.path),...snapshot.redirects.map(redirect=>redirect.from),...(snapshot.assets || []).map(asset=>'/_assets/'+asset.path).filter(safePath)]);
   const pages = new Map();
   for (const page of snapshot.pages) {
     const { view, preset, sections } = page.content;

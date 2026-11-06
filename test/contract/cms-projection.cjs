@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const requireCms = createRequire(process.cwd() + '/package.json');
 const { normalizePublicManifest } = requireCms('./backend/src/presets/registry');
 const { buildRelease } = requireCms('./backend/src/presets/releases');
+const { rewriteContractMediaUrls } = requireCms('./backend/src/release-contract/snapshot');
 const { projectReleaseSnapshot } = requireCms('./backend/src/release-contract/project');
 const { createPageDraft, updatePageDraft, pageDraft } = requireCms('./backend/src/presets/pages');
 const raw = JSON.parse(process.env.ROUNDTRIP_MANIFEST);
@@ -70,7 +71,13 @@ if (process.env.ROUNDTRIP_CASE === 'routes') {
     // A stored layout wins over stale section configs, including media props.
     input.site.pages[0].sectionConfigs[0].data.image={_id:'stale-config'};
   }
+  if (process.env.ROUNDTRIP_CASE === 'rich') {
+    input.media=[{_id:'hero',workspaceId:'workspace',siteId:'site',mimetype:'image/png',type:'IMG',accessToken:'private-hero-capability'}];
+    const entry=input.entries.find(value=>value.templateId==='content-page');
+    entry.meta[0].props.push({id:'body',data:[{nodes:[{type:'paragraph',content:[{type:'text',text:'Mapped rich body',marks:[{type:'bold'}]}]}]}]});
+    entry.content=[{lng:'en',nodes:[{type:'bulletList',content:[{type:'listItem',content:[{type:'paragraph',content:[{type:'text',text:'Default rich body',marks:[{type:'italic'},{type:'link',attrs:{href:'/',target:'_self'}}]}]}]}]},{type:'horizontalRule'},{type:'paragraph',content:[{type:'text',text:'Media file',marks:[{type:'link',attrs:{href:'media:hero@*_@*_:media',target:'_blank'}}]}]}],plainText:''}];
+  }
   const snapshot=JSON.parse(JSON.stringify(buildRelease(input)));
   const draft=JSON.parse(JSON.stringify(buildRelease(input,{preserveMediaCapabilities:true})));
-  console.log(JSON.stringify({ ...projectReleaseSnapshot(snapshot,[asset]),draft }));
+  console.log(JSON.stringify({ ...projectReleaseSnapshot(rewriteContractMediaUrls(snapshot,[asset]),[asset]),draft }));
 }

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { readFile, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -11,7 +12,7 @@ import { runContract } from '../../contracts/runner.mjs';
 const cmsRoot = process.env.CMS_CONTRACT_ROOT;
 const gatewayRoot = process.env.GATEWAY_CONTRACT_ROOT;
 for (const [id, version] of [['aeroframe', '1.0.4'], ['fireguard', '1.0.1']]) {
-  for (const scenario of ['basic', 'media']) {
+  for (const scenario of ['basic', 'media', 'rich']) {
     test(`${id} ${scenario} renders an actual CMS release accepted by the target Gateway`, { skip: !cmsRoot || !gatewayRoot ? 'Set CMS_CONTRACT_ROOT and GATEWAY_CONTRACT_ROOT for cross-repository verification' : false }, async () => {
       const templateRoot = new URL(`../../templates/${id}/${version}/`, import.meta.url).pathname;
       const raw = JSON.parse(await readFile(join(templateRoot, 'template.json'), 'utf8'));
@@ -30,6 +31,24 @@ for (const [id, version] of [['aeroframe', '1.0.4'], ['fireguard', '1.0.1']]) {
       assert.equal(shared.previewPage({kind:'preset-site',siteName:'CMS',...projected.draft}, '/')?.content.preset.demo.hero.title, 'Published headline');
       if (scenario === 'media') {
         assert.equal(shared.previewPage({kind:'preset-site',siteName:'CMS',...projected.draft}, '/')?.content.preset.demo.hero.image, 'https://cms.test/api/v4/media/hero/bin/image?cap=private-hero-capability');
+      }
+      if (scenario === 'rich') {
+        const publicPage = shared.snapshotPage(shared.normalizeContractSnapshot(contract), '/pages/contact');
+        const preview = shared.previewPage({ kind: 'preset-site', siteName: 'CMS', ...projected.draft }, '/pages/contact');
+        assert.equal(publicPage.content.richBody[0].content[0].text, 'Mapped rich body');
+        assert.equal(publicPage.content.richBody[1].type, 'bulletList');
+        assert.equal(publicPage.content.richBody[2].type, 'horizontalRule');
+        const requireStorefront = createRequire(join(templateRoot, 'storefront/package.json'));
+        const { h } = requireStorefront('vue');
+        const { renderToString } = requireStorefront('vue/server-renderer');
+        const rich = await import(pathToFileURL(join(templateRoot, 'storefront/shared/rich-content.mjs')).href);
+        const publicHtml = await renderToString(h('main', rich.renderRichNodes(publicPage.content.richBody, h)));
+        const previewHtml = await renderToString(h('main', rich.renderRichNodes(preview.content.richBody, h)));
+        assert.match(publicHtml, /<strong>Mapped rich body<\/strong>/);
+        assert.match(publicHtml, /<ul><li><p><a href="\/"[^>]*><em>Default rich body<\/em><\/a><\/p><\/li><\/ul><hr>/);
+        assert.match(publicHtml, /href="\/_assets\/media\/hero\/original.png"/);
+        assert.match(previewHtml, /href="https:\/\/cms.test\/api\/v4\/media\/hero\/bin\/image\?cap=private-hero-capability"/);
+        assert.ok(!publicHtml.includes('private-hero-capability'));
       }
       assert.deepEqual(result.pages, ['/', '/collections', '/products/product', '/pages/contact']);
       const runtime = await import(pathToFileURL(join(templateRoot,'storefront/server/utils/published.mjs')).href);
