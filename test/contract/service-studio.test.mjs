@@ -263,5 +263,20 @@ test(
       `${JSON.stringify(record, null, 2)}\n`,
       { mode: 0o600 },
     );
+    if (process.env.E1_B2_RECORD_PATH) {
+      await writeFile(
+        process.env.E1_B2_RECORD_PATH,
+        `${JSON.stringify(
+          {
+            record,
+            installedBundleDigest: installedManifest.bundleDigest,
+            secondInstall: "unchanged",
+          },
+          null,
+          2,
+        )}\n`,
+        { mode: 0o600 },
+      );
+    }
   },
 );
