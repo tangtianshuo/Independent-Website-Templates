@@ -1,0 +1,415 @@
+{
+  "schemaVersion": 1,
+  "id": "service-studio",
+  "version": "1.0.0",
+  "name": "Service Studio",
+  "description": "A contract-driven professional services website with services, team and inquiry pages.",
+  "compatibility": {
+    "cmsSchema": 1,
+    "releaseSchema": 1,
+    "migrations": []
+  },
+  "presentation": {
+    "theme": {
+      "background": "#f5f2ea",
+      "foreground": "#17201d",
+      "accent": "#d4552d",
+      "muted": "#e5ded0",
+      "font": "Arial, sans-serif"
+    },
+    "demo": {
+      "brand": "Clearline Studio",
+      "contactEmail": "hello@clearline.example"
+    }
+  },
+  "models": [
+    {
+      "key": "service",
+      "label": "Services",
+      "description": "Consulting and delivery offers",
+      "singleEntry": false,
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "STRING",
+          "required": true,
+          "array": false
+        },
+        {
+          "key": "slug",
+          "label": "Slug",
+          "type": "STRING",
+          "required": true,
+          "array": false
+        },
+        {
+          "key": "summary",
+          "label": "Summary",
+          "type": "RICH_TEXT",
+          "required": true,
+          "array": false
+        },
+        {
+          "key": "cover",
+          "label": "Cover",
+          "type": "MEDIA",
+          "required": false,
+          "array": false
+        },
+        {
+          "key": "teamMembers",
+          "label": "Team members",
+          "type": "ENTRY_POINTER",
+          "required": false,
+          "array": true,
+          "referenceModel": "team-member"
+        }
+      ]
+    },
+    {
+      "key": "team-member",
+      "label": "Team members",
+      "description": "People available to introduce on the team page",
+      "singleEntry": false,
+      "fields": [
+        {
+          "key": "name",
+          "label": "Name",
+          "type": "STRING",
+          "required": true,
+          "array": false
+        },
+        {
+          "key": "role",
+          "label": "Role",
+          "type": "STRING",
+          "required": true,
+          "array": false
+        },
+        {
+          "key": "portrait",
+          "label": "Portrait",
+          "type": "MEDIA",
+          "required": false,
+          "array": false
+        }
+      ]
+    },
+    {
+      "key": "site-settings",
+      "label": "Site settings",
+      "description": "Brand, inquiry destination and shared navigation",
+      "singleEntry": true,
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "STRING",
+          "required": true,
+          "array": false
+        },
+        {
+          "key": "slug",
+          "label": "Slug",
+          "type": "STRING",
+          "required": true,
+          "array": false
+        },
+        {
+          "key": "brandName",
+          "label": "Brand name",
+          "type": "STRING",
+          "required": true,
+          "array": false
+        },
+        {
+          "key": "contactEmail",
+          "label": "Contact email",
+          "type": "STRING",
+          "required": true,
+          "array": false
+        },
+        {
+          "key": "navigationServices",
+          "label": "Featured services",
+          "type": "ENTRY_POINTER",
+          "required": false,
+          "array": true,
+          "referenceModel": "service"
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "key": "home",
+      "title": "Home",
+      "path": "/",
+      "modelKey": "service",
+      "layout": "home"
+    },
+    {
+      "key": "services",
+      "title": "Services",
+      "path": "/services",
+      "modelKey": "service",
+      "layout": "services"
+    },
+    {
+      "key": "service-detail",
+      "title": "Service",
+      "path": "/services/:slug",
+      "modelKey": "service",
+      "layout": "service-detail"
+    },
+    {
+      "key": "team",
+      "title": "Team",
+      "path": "/team",
+      "modelKey": "team-member",
+      "layout": "team"
+    },
+    {
+      "key": "contact",
+      "title": "Contact",
+      "path": "/contact",
+      "modelKey": "site-settings",
+      "layout": "contact"
+    }
+  ],
+  "editor": {
+    "schemaVersion": 1,
+    "models": [
+      {
+        "modelKey": "service",
+        "fields": [
+          {
+            "key": "title",
+            "label": "Service name",
+            "control": "text",
+            "default": "Digital discovery",
+            "required": true
+          },
+          {
+            "key": "slug",
+            "label": "Link name",
+            "control": "text",
+            "default": "discovery",
+            "required": true
+          },
+          {
+            "key": "summary",
+            "label": "Service summary",
+            "control": "rich-text",
+            "default": {
+              "nodes": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Clearline maps the customer journey, aligns stakeholders and turns a focused brief into a practical delivery plan."
+                    }
+                  ]
+                }
+              ]
+            },
+            "required": true
+          },
+          {
+            "key": "cover",
+            "label": "Service image",
+            "control": "media",
+            "default": "https://raw.githubusercontent.com/tangtianshuo/Independent-Website-Templates/master/templates/service-studio/1.0.0/assets/service-cover.webp"
+          },
+          {
+            "key": "teamMembers",
+            "label": "Assigned team",
+            "control": "reference",
+            "required": false
+          }
+        ]
+      },
+      {
+        "modelKey": "team-member",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Name",
+            "control": "text",
+            "default": "Mina Park",
+            "required": true
+          },
+          {
+            "key": "role",
+            "label": "Role",
+            "control": "text",
+            "default": "Service design lead",
+            "required": true
+          },
+          {
+            "key": "portrait",
+            "label": "Portrait",
+            "control": "media",
+            "default": "https://raw.githubusercontent.com/tangtianshuo/Independent-Website-Templates/master/templates/service-studio/1.0.0/assets/team-portrait.webp"
+          }
+        ]
+      },
+      {
+        "modelKey": "site-settings",
+        "fields": [
+          {
+            "key": "title",
+            "label": "Title",
+            "control": "text",
+            "default": "Site settings",
+            "required": true
+          },
+          {
+            "key": "slug",
+            "label": "Slug",
+            "control": "text",
+            "default": "settings",
+            "required": true
+          },
+          {
+            "key": "brandName",
+            "label": "Brand name",
+            "control": "text",
+            "default": "Clearline Studio",
+            "required": true
+          },
+          {
+            "key": "contactEmail",
+            "label": "Contact email",
+            "control": "text",
+            "default": "hello@clearline.example",
+            "required": true
+          },
+          {
+            "key": "navigationServices",
+            "label": "Featured services",
+            "control": "reference",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "pages": [
+      {
+        "pageKey": "home",
+        "modelKey": "service",
+        "pathRule": { "type": "fixed", "value": "/" },
+        "allowNavigation": false,
+        "sections": ["hero", "service-list"]
+      },
+      {
+        "pageKey": "services",
+        "modelKey": "service",
+        "pathRule": { "type": "fixed", "value": "/services" },
+        "allowNavigation": true,
+        "sections": ["service-list"]
+      },
+      {
+        "pageKey": "service-detail",
+        "modelKey": "service",
+        "pathRule": { "type": "pattern", "value": "/services/:slug" },
+        "allowNavigation": false,
+        "sections": ["hero", "service-list"]
+      },
+      {
+        "pageKey": "team",
+        "modelKey": "team-member",
+        "pathRule": { "type": "fixed", "value": "/team" },
+        "allowNavigation": true,
+        "sections": ["team-grid"]
+      },
+      {
+        "pageKey": "contact",
+        "modelKey": "site-settings",
+        "pathRule": { "type": "fixed", "value": "/contact" },
+        "allowNavigation": true,
+        "sections": ["contact-form"]
+      }
+    ],
+    "sections": [
+      {
+        "type": "hero",
+        "label": "Hero",
+        "allowedPages": ["home", "service-detail"],
+        "singleton": true,
+        "required": true,
+        "props": {
+          "title": { "control": "text", "label": "Heading" },
+          "subtitle": { "control": "text", "label": "Introduction" },
+          "image": { "control": "media", "label": "Hero image" }
+        }
+      },
+      {
+        "type": "service-list",
+        "label": "Service list",
+        "allowedPages": ["home", "services", "service-detail"],
+        "singleton": true,
+        "required": false,
+        "props": {
+          "heading": { "control": "text", "label": "Heading" },
+          "intro": { "control": "text", "label": "Introduction" }
+        }
+      },
+      {
+        "type": "team-grid",
+        "label": "Team grid",
+        "allowedPages": ["team"],
+        "singleton": true,
+        "required": true,
+        "props": {
+          "heading": { "control": "text", "label": "Heading" }
+        }
+      },
+      {
+        "type": "contact-form",
+        "label": "Contact form",
+        "allowedPages": ["contact"],
+        "singleton": true,
+        "required": true,
+        "props": {
+          "heading": { "control": "text", "label": "Heading" },
+          "email": { "control": "text", "label": "Contact email" }
+        }
+      }
+    ],
+    "operations": {
+      "canCreatePages": true,
+      "canEditNavigation": true,
+      "canPublish": true
+    }
+  },
+  "renderer": {
+    "contractVersion": 1,
+    "templateId": "service-studio",
+    "templateVersion": "1.0.0",
+    "preview": {
+      "protocolVersion": 1,
+      "capabilities": ["select-node", "hover-node", "scroll-to-node"]
+    },
+    "assets": { "mode": "published", "basePath": "/_assets/" }
+  },
+  "assets": [
+    {
+      "path": "assets/hero.png",
+      "checksum": "a3ce3cde465851e3c7033b451162b8a24a088d86b26a07f7d65d5f4d0a4dc209",
+      "mimeType": "image/png"
+    },
+    {
+      "path": "assets/service-cover.webp",
+      "checksum": "ff431fa82a25c88a12c7a00dbb05a29d8aa98b28273e9fe9219d59a5e4a7df27",
+      "mimeType": "image/webp"
+    },
+    {
+      "path": "assets/team-portrait.webp",
+      "checksum": "1e6a631d123456fd49a2960e4500fc75990782e3a1092b9a909b5fa76f06a1ea",
+      "mimeType": "image/webp"
+    }
+  ]
+}

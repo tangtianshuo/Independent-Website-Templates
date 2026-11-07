@@ -2,7 +2,17 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "id", "version", "name", "description", "compatibility", "models", "pages", "assets"],
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "name",
+    "description",
+    "compatibility",
+    "models",
+    "pages",
+    "assets"
+  ],
   "properties": {
     "schemaVersion": { "const": 1 },
     "id": { "$ref": "#/definitions/identifier" },
@@ -10,95 +20,264 @@
     "name": { "$ref": "#/definitions/nonempty" },
     "description": { "type": "string" },
     "compatibility": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["cmsSchema", "releaseSchema"],
       "properties": {
         "cmsSchema": { "const": 1 },
         "releaseSchema": { "const": 1 },
-        "migrations": { "type": "array", "items": { "$ref": "#/definitions/migration" } }
+        "migrations": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/migration" }
+        }
       }
     },
     "presentation": {
-      "type": "object", "additionalProperties": false, "required": ["theme", "demo"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["theme", "demo"],
       "properties": {
-        "theme": { "type": "object", "additionalProperties": false, "required": ["background", "foreground", "accent", "muted", "font"], "properties": {
-          "background": { "$ref": "#/definitions/nonempty" }, "foreground": { "$ref": "#/definitions/nonempty" },
-          "accent": { "$ref": "#/definitions/nonempty" }, "muted": { "$ref": "#/definitions/nonempty" }, "font": { "$ref": "#/definitions/nonempty" }
-        } },
-        "demo": { "type": "object", "additionalProperties": false, "required": ["brand", "hero", "product", "collection", "page"], "properties": {
-          "brand": { "$ref": "#/definitions/nonempty" }, "contactEmail": { "type": "string" },
-          "hero": { "type": "object", "additionalProperties": false, "required": ["title", "subtitle", "image"], "properties": { "title": { "$ref": "#/definitions/nonempty" }, "subtitle": { "$ref": "#/definitions/nonempty" }, "image": { "type": "string", "format": "uri" } } },
-          "product": { "$ref": "#/definitions/demoProduct" }, "collection": { "$ref": "#/definitions/demoCollection" }, "page": { "$ref": "#/definitions/demoPage" }
-        } },
-        "showcase": { "type": "object", "additionalProperties": false, "required": ["eyebrow", "heroLabel", "stats", "products", "solutions", "faq"], "properties": {
-          "eyebrow": { "$ref": "#/definitions/nonempty" }, "heroLabel": { "$ref": "#/definitions/nonempty" },
-          "stats": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["value", "label"], "properties": { "value": { "$ref": "#/definitions/nonempty" }, "label": { "$ref": "#/definitions/nonempty" } } } },
-          "products": { "type": "array", "items": { "$ref": "#/definitions/demoProduct" } },
-          "solutions": { "type": "array", "items": { "$ref": "#/definitions/demoCollection" } },
-          "faq": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["question", "answer"], "properties": { "question": { "$ref": "#/definitions/nonempty" }, "answer": { "$ref": "#/definitions/nonempty" } } } }
-        } }
+        "theme": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["background", "foreground", "accent", "muted", "font"],
+          "properties": {
+            "background": { "$ref": "#/definitions/nonempty" },
+            "foreground": { "$ref": "#/definitions/nonempty" },
+            "accent": { "$ref": "#/definitions/nonempty" },
+            "muted": { "$ref": "#/definitions/nonempty" },
+            "font": { "$ref": "#/definitions/nonempty" }
+          }
+        },
+        "demo": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["brand"],
+          "properties": {
+            "brand": { "$ref": "#/definitions/nonempty" },
+            "contactEmail": { "type": "string" },
+            "hero": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "subtitle", "image"],
+              "properties": {
+                "title": { "$ref": "#/definitions/nonempty" },
+                "subtitle": { "$ref": "#/definitions/nonempty" },
+                "image": { "type": "string", "format": "uri" }
+              }
+            },
+            "product": { "$ref": "#/definitions/demoProduct" },
+            "collection": { "$ref": "#/definitions/demoCollection" },
+            "page": { "$ref": "#/definitions/demoPage" }
+          }
+        },
+        "showcase": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "eyebrow",
+            "heroLabel",
+            "stats",
+            "products",
+            "solutions",
+            "faq"
+          ],
+          "properties": {
+            "eyebrow": { "$ref": "#/definitions/nonempty" },
+            "heroLabel": { "$ref": "#/definitions/nonempty" },
+            "stats": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["value", "label"],
+                "properties": {
+                  "value": { "$ref": "#/definitions/nonempty" },
+                  "label": { "$ref": "#/definitions/nonempty" }
+                }
+              }
+            },
+            "products": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/demoProduct" }
+            },
+            "solutions": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/demoCollection" }
+            },
+            "faq": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["question", "answer"],
+                "properties": {
+                  "question": { "$ref": "#/definitions/nonempty" },
+                  "answer": { "$ref": "#/definitions/nonempty" }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "editor": { "$ref": "#/definitions/editor" },
     "renderer": { "$ref": "#/definitions/renderer" },
-    "models": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/model" } },
-    "pages": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/page" } },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/model" }
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/page" }
+    },
     "assets": { "type": "array", "items": { "$ref": "#/definitions/asset" } }
   },
   "definitions": {
     "identifier": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
-    "key": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9]*(?:-[a-zA-Z0-9]+)*$" },
+    "key": {
+      "type": "string",
+      "pattern": "^[a-z][a-zA-Z0-9]*(?:-[a-zA-Z0-9]+)*$"
+    },
     "nonempty": { "type": "string", "minLength": 1 },
-    "demoProduct": { "type": "object", "additionalProperties": false, "required": ["title", "price", "image", "description"], "properties": { "title": { "$ref": "#/definitions/nonempty" }, "price": { "type": "string" }, "image": { "type": "string", "format": "uri" }, "description": { "type": "string" } } },
-    "demoCollection": { "type": "object", "additionalProperties": false, "required": ["title", "description", "image"], "properties": { "title": { "$ref": "#/definitions/nonempty" }, "description": { "type": "string" }, "image": { "type": "string", "format": "uri" } } },
-    "demoPage": { "type": "object", "additionalProperties": false, "required": ["title", "body", "image"], "properties": { "title": { "$ref": "#/definitions/nonempty" }, "body": { "type": "string" }, "image": { "type": "string", "format": "uri" } } },
+    "demoProduct": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "price", "image", "description"],
+      "properties": {
+        "title": { "$ref": "#/definitions/nonempty" },
+        "price": { "type": "string" },
+        "image": { "type": "string", "format": "uri" },
+        "description": { "type": "string" }
+      }
+    },
+    "demoCollection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "description", "image"],
+      "properties": {
+        "title": { "$ref": "#/definitions/nonempty" },
+        "description": { "type": "string" },
+        "image": { "type": "string", "format": "uri" }
+      }
+    },
+    "demoPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "body", "image"],
+      "properties": {
+        "title": { "$ref": "#/definitions/nonempty" },
+        "body": { "type": "string" },
+        "image": { "type": "string", "format": "uri" }
+      }
+    },
     "field": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["key", "label", "type", "required", "array"],
       "properties": {
-        "key": { "$ref": "#/definitions/key" }, "label": { "$ref": "#/definitions/nonempty" },
-        "type": { "enum": ["STRING", "NUMBER", "BOOLEAN", "DATE", "ENUMERATION", "MEDIA", "GROUP_POINTER", "ENTRY_POINTER", "WIDGET", "RICH_TEXT"] },
-        "required": { "type": "boolean" }, "array": { "type": "boolean" },
+        "key": { "$ref": "#/definitions/key" },
+        "label": { "$ref": "#/definitions/nonempty" },
+        "type": {
+          "enum": [
+            "STRING",
+            "NUMBER",
+            "BOOLEAN",
+            "DATE",
+            "ENUMERATION",
+            "MEDIA",
+            "GROUP_POINTER",
+            "ENTRY_POINTER",
+            "WIDGET",
+            "RICH_TEXT"
+          ]
+        },
+        "required": { "type": "boolean" },
+        "array": { "type": "boolean" },
         "referenceModel": { "$ref": "#/definitions/key" }
       }
     },
     "model": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["key", "label", "description", "singleEntry", "fields"],
       "properties": {
-        "key": { "$ref": "#/definitions/key" }, "label": { "$ref": "#/definitions/nonempty" },
-        "description": { "type": "string" }, "singleEntry": { "type": "boolean" },
-        "fields": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/field" } }
+        "key": { "$ref": "#/definitions/key" },
+        "label": { "$ref": "#/definitions/nonempty" },
+        "description": { "type": "string" },
+        "singleEntry": { "type": "boolean" },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/field" }
+        }
       }
     },
     "page": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["key", "title", "path", "modelKey", "layout"],
       "properties": {
-        "key": { "$ref": "#/definitions/key" }, "title": { "$ref": "#/definitions/nonempty" },
-        "path": { "type": "string", "pattern": "^/(?:[a-z0-9-]+|:[a-z][a-z0-9]*)(?:/(?:[a-z0-9-]+|:[a-z][a-z0-9]*))*$|^/$" },
-        "modelKey": { "$ref": "#/definitions/key" }, "layout": { "$ref": "#/definitions/nonempty" }
+        "key": { "$ref": "#/definitions/key" },
+        "title": { "$ref": "#/definitions/nonempty" },
+        "path": {
+          "type": "string",
+          "pattern": "^/(?:[a-z0-9-]+|:[a-z][a-z0-9]*)(?:/(?:[a-z0-9-]+|:[a-z][a-z0-9]*))*$|^/$"
+        },
+        "modelKey": { "$ref": "#/definitions/key" },
+        "layout": { "$ref": "#/definitions/nonempty" }
       }
     },
     "asset": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["path", "checksum", "mimeType"],
       "properties": {
-        "path": { "type": "string", "pattern": "^[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)*/[a-zA-Z0-9_-]+\\.(?:png|jpe?g|webp|gif|avif)$" },
+        "path": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)*/[a-zA-Z0-9_-]+\\.(?:png|jpe?g|webp|gif|avif)$"
+        },
         "checksum": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-        "mimeType": { "enum": ["image/png", "image/jpeg", "image/webp", "image/gif", "image/avif"] }
+        "mimeType": {
+          "enum": [
+            "image/png",
+            "image/jpeg",
+            "image/webp",
+            "image/gif",
+            "image/avif"
+          ]
+        }
       }
     },
     "editor": {
-      "type": "object", "additionalProperties": false,
-      "required": ["schemaVersion", "models", "pages", "sections", "operations"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "models",
+        "pages",
+        "sections",
+        "operations"
+      ],
       "properties": {
         "schemaVersion": { "const": 1 },
-        "models": { "type": "array", "items": { "$ref": "#/definitions/editorModel" } },
-        "pages": { "type": "array", "items": { "$ref": "#/definitions/editorPage" } },
-        "sections": { "type": "array", "items": { "$ref": "#/definitions/editorSection" } },
+        "models": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/editorModel" }
+        },
+        "pages": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/editorPage" }
+        },
+        "sections": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/editorSection" }
+        },
         "operations": {
-          "type": "object", "additionalProperties": false,
+          "type": "object",
+          "additionalProperties": false,
           "required": ["canCreatePages", "canEditNavigation", "canPublish"],
           "properties": {
             "canCreatePages": { "type": "boolean" },
@@ -109,44 +288,77 @@
       }
     },
     "editorModel": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["modelKey", "fields"],
       "properties": {
         "modelKey": { "$ref": "#/definitions/key" },
-        "fields": { "type": "array", "items": { "$ref": "#/definitions/editorField" } }
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/editorField" }
+        }
       }
     },
     "editorField": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["key", "label", "control"],
       "properties": {
         "key": { "$ref": "#/definitions/key" },
         "label": { "$ref": "#/definitions/nonempty" },
-        "control": { "enum": ["text", "number", "boolean", "date", "enum", "media", "reference", "rich-text", "array", "widget"] },
+        "control": {
+          "enum": [
+            "text",
+            "number",
+            "boolean",
+            "date",
+            "enum",
+            "media",
+            "reference",
+            "rich-text",
+            "array",
+            "widget"
+          ]
+        },
         "group": { "$ref": "#/definitions/nonempty" },
         "description": { "type": "string" },
         "default": {},
         "required": { "type": "boolean" },
         "visibleWhen": {
-          "type": "object", "additionalProperties": false,
+          "type": "object",
+          "additionalProperties": false,
           "required": ["field", "equals"],
-          "properties": { "field": { "$ref": "#/definitions/key" }, "equals": {} }
+          "properties": {
+            "field": { "$ref": "#/definitions/key" },
+            "equals": {}
+          }
         }
       }
     },
     "editorPage": {
-      "type": "object", "additionalProperties": false,
-      "required": ["pageKey", "modelKey", "pathRule", "allowNavigation", "sections"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pageKey",
+        "modelKey",
+        "pathRule",
+        "allowNavigation",
+        "sections"
+      ],
       "properties": {
         "pageKey": { "$ref": "#/definitions/key" },
         "modelKey": { "$ref": "#/definitions/key" },
         "pathRule": { "$ref": "#/definitions/pathRule" },
         "allowNavigation": { "type": "boolean" },
-        "sections": { "type": "array", "items": { "$ref": "#/definitions/key" } }
+        "sections": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/key" }
+        }
       }
     },
     "pathRule": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["type", "value"],
       "properties": {
         "type": { "enum": ["fixed", "pattern"] },
@@ -154,35 +366,70 @@
       }
     },
     "editorSection": {
-      "type": "object", "additionalProperties": false,
-      "required": ["type", "label", "allowedPages", "singleton", "required", "props"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "label",
+        "allowedPages",
+        "singleton",
+        "required",
+        "props"
+      ],
       "properties": {
         "type": { "$ref": "#/definitions/key" },
         "label": { "$ref": "#/definitions/nonempty" },
         "description": { "type": "string" },
-        "allowedPages": { "type": "array", "items": { "$ref": "#/definitions/key" } },
+        "allowedPages": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/key" }
+        },
         "singleton": { "type": "boolean" },
         "required": { "type": "boolean" },
-        "props": { "type": "object", "additionalProperties": { "$ref": "#/definitions/sectionProp" } }
+        "props": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/sectionProp" }
+        }
       }
     },
     "sectionProp": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["control"],
       "properties": {
-        "control": { "enum": ["text", "number", "boolean", "date", "enum", "media", "reference", "rich-text", "array", "widget"] },
+        "control": {
+          "enum": [
+            "text",
+            "number",
+            "boolean",
+            "date",
+            "enum",
+            "media",
+            "reference",
+            "rich-text",
+            "array",
+            "widget"
+          ]
+        },
         "label": { "$ref": "#/definitions/nonempty" },
         "visibleWhen": {
-          "type": "object", "additionalProperties": false,
+          "type": "object",
+          "additionalProperties": false,
           "required": ["field", "equals"],
-          "properties": { "field": { "$ref": "#/definitions/key" }, "equals": {} }
+          "properties": {
+            "field": { "$ref": "#/definitions/key" },
+            "equals": {}
+          }
         },
         "minimum": { "type": "number" },
         "integer": { "type": "boolean" },
         "required": { "type": "boolean" },
         "description": { "type": "string" },
         "default": {},
-        "options": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        "options": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
       },
       "dependencies": {
         "minimum": { "properties": { "control": { "const": "number" } } },
@@ -190,33 +437,75 @@
       }
     },
     "renderer": {
-      "type": "object", "additionalProperties": false,
-      "required": ["contractVersion", "templateId", "templateVersion", "preview", "assets"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contractVersion",
+        "templateId",
+        "templateVersion",
+        "preview",
+        "assets"
+      ],
       "properties": {
         "contractVersion": { "const": 1 },
         "templateId": { "$ref": "#/definitions/identifier" },
-        "templateVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "templateVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
         "preview": {
-          "type": "object", "additionalProperties": false,
+          "type": "object",
+          "additionalProperties": false,
           "required": ["protocolVersion", "capabilities"],
-          "properties": { "protocolVersion": { "const": 1 }, "capabilities": { "type": "array", "items": { "enum": ["select-node", "hover-node", "scroll-to-node"] } } }
+          "properties": {
+            "protocolVersion": { "const": 1 },
+            "capabilities": {
+              "type": "array",
+              "items": {
+                "enum": ["select-node", "hover-node", "scroll-to-node"]
+              }
+            }
+          }
         },
         "assets": {
-          "type": "object", "additionalProperties": false,
+          "type": "object",
+          "additionalProperties": false,
           "required": ["mode", "basePath"],
-          "properties": { "mode": { "enum": ["published", "embedded"] }, "basePath": { "type": "string", "pattern": "^/" } }
+          "properties": {
+            "mode": { "enum": ["published", "embedded"] },
+            "basePath": { "type": "string", "pattern": "^/" }
+          }
         }
       }
     },
     "migration": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["from", "to", "steps"],
       "properties": {
         "from": { "$ref": "#/definitions/templateIdentity" },
         "to": { "$ref": "#/definitions/templateIdentity" },
-        "steps": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["operation"], "properties": { "operation": { "enum": ["rename-field", "set-default", "transform" ] }, "from": { "$ref": "#/definitions/key" }, "to": { "$ref": "#/definitions/key" }, "value": {} } } }
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["operation"],
+            "properties": {
+              "operation": {
+                "enum": ["rename-field", "set-default", "transform"]
+              },
+              "from": { "$ref": "#/definitions/key" },
+              "to": { "$ref": "#/definitions/key" },
+              "value": {}
+            }
+          }
+        }
       }
     },
-    "templateIdentity": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*@[0-9]+\\.[0-9]+\\.[0-9]+$" }
+    "templateIdentity": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*@[0-9]+\\.[0-9]+\\.[0-9]+$"
+    }
   }
 }
