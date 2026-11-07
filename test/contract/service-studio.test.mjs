@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import test from "node:test";
-import { validateManifest } from "../../scripts/validate.mjs";
+import {
+  canonicalChecksum,
+  validateManifest,
+} from "../../scripts/validate.mjs";
 import { runContract } from "../../contracts/runner.mjs";
 
 const repositoryRoot = new URL("../../", import.meta.url).pathname;
@@ -13,6 +17,7 @@ const templateRoot = join(repositoryRoot, "templates/service-studio/1.0.0");
 const manifestPath = join(templateRoot, "template.json");
 const cmsRoot = process.env.CMS_CONTRACT_ROOT;
 const gatewayRoot = process.env.GATEWAY_CONTRACT_ROOT;
+const previewRoot = process.env.PREVIEW_CONTRACT_ROOT;
 
 test("service-studio validates without a commerce model", async () => {
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
@@ -149,3 +154,114 @@ test("service-studio renders its five pages from ContractSnapshotV1", async () =
   assert.match(JSON.stringify(team), /Mina Park/);
   assert.match(JSON.stringify(contact), /clearline-contact-marker/);
 });
+
+test(
+  "service-studio packages and installs through the local B2 transaction",
+  {
+    skip: !previewRoot
+      ? "Set PREVIEW_CONTRACT_ROOT for B2 verification"
+      : false,
+  },
+  async (context) => {
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    const storefront = join(templateRoot, "storefront");
+    execFileSync("npm", ["run", "build:preview"], {
+      cwd: storefront,
+      env: {
+        ...process.env,
+        PREVIEW_APP_BASE_URL: `/preview/${manifest.id}/${manifest.version}/`,
+      },
+      stdio: "pipe",
+    });
+    const directory = await mkdtemp(join(tmpdir(), "service-studio-b2-"));
+    context.after(() => rm(directory, { recursive: true, force: true }));
+    const sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+    }).trim();
+    const bundleDir = join(directory, "bundle");
+    const { buildPreviewBundle } = await import(
+      pathToFileURL(join(repositoryRoot, "scripts/preview-bundle.mjs")).href
+    );
+    const bundle = await buildPreviewBundle({
+      publicDir: join(storefront, ".output/public"),
+      outputDir: bundleDir,
+      templateId: manifest.id,
+      templateVersion: manifest.version,
+      sourceCommit,
+      manifestChecksum: `sha256:${canonicalChecksum(manifest)}`,
+    });
+    const archivePath = join(directory, "preview-bundle.tar.gz");
+    execFileSync("tar", [
+      "--format=ustar",
+      "-czf",
+      archivePath,
+      "-C",
+      bundleDir,
+      ".",
+    ]);
+    const { preparePreviewRelease } = await import(
+      pathToFileURL(join(repositoryRoot, "scripts/preview-publication.mjs"))
+        .href
+    );
+    const record = await preparePreviewRelease({
+      registryRoot: join(directory, "source-registry"),
+      manifest,
+      sourceCommit,
+      archivePath,
+      async build() {
+        return bundle.bundleDigest;
+      },
+      async push() {
+        return `sha256:${createHash("sha256")
+          .update(await readFile(archivePath))
+          .digest("hex")}`;
+      },
+      async pull() {
+        throw new Error("fresh local package must not pull");
+      },
+    });
+    assert.equal(record.bundleDigest, bundle.bundleDigest);
+    assert.equal(record.sourceCommit, sourceCommit);
+
+    const { extractBundleArchive, installBundle } = await import(
+      pathToFileURL(join(previewRoot, "ops/install-bundle.mjs")).href
+    );
+    const stagingDir = join(directory, "staging");
+    await mkdir(stagingDir, { mode: 0o700 });
+    await extractBundleArchive({ archivePath, stagingDir });
+    const bundlesRoot = join(directory, "installed/bundles");
+    const registryPath = join(directory, "installed/preview/index.json");
+    await mkdir(dirname(registryPath), { recursive: true });
+    const options = {
+      stagingDir,
+      bundlesRoot,
+      record,
+      registryPath,
+    };
+    assert.equal(await installBundle(options), "installed");
+    assert.equal(await installBundle(options), "unchanged");
+    const installedManifest = JSON.parse(
+      await readFile(
+        join(bundlesRoot, manifest.id, manifest.version, "preview-bundle.json"),
+        "utf8",
+      ),
+    );
+    assert.equal(installedManifest.bundleDigest, bundle.bundleDigest);
+    assert.equal(installedManifest.sourceCommit, sourceCommit);
+    const registry = JSON.parse(await readFile(registryPath, "utf8"));
+    assert.deepEqual(registry.records, [record]);
+    assert.match(
+      await readFile(
+        join(bundlesRoot, manifest.id, manifest.version, "index.html"),
+        "utf8",
+      ),
+      /<html/i,
+    );
+    await writeFile(
+      join(directory, "b2-record.json"),
+      `${JSON.stringify(record, null, 2)}\n`,
+      { mode: 0o600 },
+    );
+  },
+);

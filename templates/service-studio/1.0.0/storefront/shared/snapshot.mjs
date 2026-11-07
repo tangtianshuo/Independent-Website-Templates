@@ -211,7 +211,7 @@ function sectionValues(page, snapshot) {
           enabled: node.enabled,
           data: node.props,
         }))
-      : (page.content.sectionConfigs ?? []),
+      : page.content.sectionConfigs ?? [],
   );
   if (!Array.isArray(values)) return null;
   const seen = new Set();
@@ -375,7 +375,24 @@ export function snapshotPage(snapshot, path, { preview = false } = {}) {
         : {}),
     },
     navigation: snapshot.navigation.filter((item) => pages.has(item.path)),
-    items: [],
+    items: (page.content.items ?? [])
+      .filter(
+        (item) =>
+          object(item) &&
+          string(item.label) &&
+          safePath(item.path) &&
+          pages.has(item.path) &&
+          string(item.image) &&
+          string(item.description) &&
+          string(item.price),
+      )
+      .map(({ label, path, image, description, price }) => ({
+        label,
+        path,
+        image,
+        description,
+        price,
+      })),
   };
 }
 

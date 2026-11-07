@@ -4,7 +4,9 @@ const { readFileSync } = require("node:fs");
 const { createRequire } = require("node:module");
 
 const requireCms = createRequire(process.cwd() + "/package.json");
-const { buildRelease } = requireCms("./backend/src/presets/releases");
+const { buildRelease, publishRelease, rollbackRelease } = requireCms(
+  "./backend/src/presets/releases",
+);
 const { createPageDraft, pageDraft, updatePageDraft } = requireCms(
   "./backend/src/presets/pages",
 );
@@ -46,6 +48,8 @@ class MemorySource {
     this.site = null;
     this.templates = [];
     this.entries = [];
+    this.releases = [];
+    this.audits = [];
   }
 
   async findSite() {
@@ -94,6 +98,40 @@ class MemorySource {
   }
 
   async ensureEnglish() {}
+
+  async loadContent(site) {
+    return {
+      site,
+      templates: this.templates,
+      entries: this.entries,
+      media: [],
+      language: "en",
+      mediaOrigin: "https://cms.example",
+      currency: "USD",
+    };
+  }
+
+  async findRelease(id) {
+    return this.releases.find((release) => release._id === id) || null;
+  }
+
+  async insertRelease(release) {
+    this.releases.push(structuredClone(release));
+  }
+
+  async activate(site, releaseId) {
+    if (!this.site || this.site._id !== site._id) return false;
+    this.site.currentReleaseId = releaseId;
+    this.site.publishedReleaseIds = [
+      ...new Set([...(this.site.publishedReleaseIds || []), releaseId]),
+    ];
+    this.site.updatedAt = Math.max(Date.now(), this.site.updatedAt + 1);
+    return true;
+  }
+
+  async audit(event) {
+    this.audits.push(structuredClone(event));
+  }
 }
 
 function configure(site, key, seoDescription, sectionConfigs) {
@@ -125,6 +163,47 @@ function setEntryField(site, entry, fieldKey, value) {
   prop.data = [value];
 }
 
+function addEntry(site, source, modelKey, values, suffix) {
+  const model = site.models.find((item) => item.key === modelKey);
+  const definition = raw.models.find((item) => item.key === modelKey);
+  const seeded = source.entries.find(
+    (entry) => entry.templateId === model?.templateId,
+  );
+  if (!model || !definition || !seeded) throw new Error(`Missing ${modelKey}`);
+  const entry = structuredClone(seeded);
+  entry._id = createHash("sha256")
+    .update(`${site._id}:${modelKey}:${suffix}`)
+    .digest("hex")
+    .slice(0, 24);
+  entry.meta = entry.meta.map((meta) => ({
+    ...meta,
+    props: definition.fields.flatMap((field) => {
+      const mapping = model.fields.find((item) => item.key === field.key);
+      const value = values[field.key];
+      if (!mapping || value === undefined) return [];
+      return [
+        {
+          id: mapping.propId,
+          data:
+            field.type === "RICH_TEXT"
+              ? [
+                  {
+                    nodes: [
+                      {
+                        type: "paragraph",
+                        content: [{ type: "text", text: String(value) }],
+                      },
+                    ],
+                  },
+                ]
+              : [value],
+        },
+      ];
+    }),
+  }));
+  source.entries.push(entry);
+  return entry;
+}
 (async () => {
   const source = new MemorySource();
   let site = await importPreset(
@@ -233,19 +312,49 @@ function setEntryField(site, entry, fieldKey, value) {
     contactFormEnabled: true,
   };
   const stage = process.env.SERVICE_STUDIO_STAGE || "initial";
+  source.site = site;
+  const first = await publishRelease(source, "contract-owner", "");
+  const project = (releaseId) => {
+    const record = source.releases.find((item) => item._id === releaseId);
+    if (!record) throw new Error(`Missing release ${releaseId}`);
+    const release = JSON.parse(record.payload);
+    const projected = projectReleaseSnapshot(release);
+    const preview = Object.fromEntries(
+      release.pages.map((page) => [
+        page.content.view,
+        {
+          path: page.path,
+          view: page.content.view,
+          sections: page.content.sections,
+        },
+      ]),
+    );
+    return {
+      releaseId,
+      pages: release.pages.map((page) => page.path),
+      preview,
+      checksum: projected.checksum,
+      snapshot: projected.snapshot,
+    };
+  };
+  let initial = project(first._id);
+  let updated;
+  let rolledBack;
+  let second;
   if (stage === "updated") {
-    const service = source.entries.find(
-      (entry) =>
-        entry.templateId ===
-        site.models.find((model) => model.key === "service").templateId,
+    const serviceModel = site.models.find((model) => model.key === "service");
+    const teamModel = site.models.find((model) => model.key === "team-member");
+    const firstService = source.entries.find(
+      (entry) => entry.templateId === serviceModel.templateId,
     );
-    const team = source.entries.find(
-      (entry) =>
-        entry.templateId ===
-        site.models.find((model) => model.key === "team-member").templateId,
+    const firstTeam = source.entries.find(
+      (entry) => entry.templateId === teamModel.templateId,
     );
-    setEntryField(site, service, "title", "Strategy sprint");
-    setEntryField(site, service, "summary", {
+    assert.ok(firstService);
+    assert.ok(firstTeam);
+    setEntryField(site, firstService, "title", "Strategy sprint");
+    setEntryField(site, firstService, "slug", "strategy");
+    setEntryField(site, firstService, "summary", {
       nodes: [
         {
           type: "paragraph",
@@ -258,8 +367,29 @@ function setEntryField(site, entry, fieldKey, value) {
         },
       ],
     });
-    setEntryField(site, team, "name", "Mina Park, updated");
-    setEntryField(site, team, "role", "Delivery practice lead");
+    setEntryField(site, firstTeam, "name", "Mina Park, updated");
+    setEntryField(site, firstTeam, "role", "Delivery practice lead");
+    const secondService = addEntry(
+      site,
+      source,
+      "service",
+      {
+        title: "Content systems",
+        slug: "content-systems",
+        summary: "A content operations service that keeps publishing reliable.",
+      },
+      "second-service",
+    );
+    addEntry(
+      site,
+      source,
+      "team-member",
+      {
+        name: "Arun Shah",
+        role: "Content systems lead",
+      },
+      "second-team-member",
+    );
     const blueprint = pageDraft(site, "service-detail");
     site = createPageDraft(
       site,
@@ -271,7 +401,7 @@ function setEntryField(site, entry, fieldKey, value) {
         blueprintKey: "service-detail",
         seoTitle: "Strategy sprint",
         seoDescription: "A focused strategy sprint.",
-        entryId: service._id,
+        entryId: firstService._id,
         sectionConfigs: [
           {
             type: "hero",
@@ -288,7 +418,36 @@ function setEntryField(site, entry, fieldKey, value) {
           },
         ],
       },
-      service,
+      firstService,
+    );
+    site = createPageDraft(
+      site,
+      "service-content-systems",
+      {
+        ...pageDraft(site, "service-detail"),
+        title: "Content systems",
+        path: "/services/content-systems",
+        blueprintKey: "service-detail",
+        seoTitle: "Content systems",
+        seoDescription: "Reliable publishing and content operations.",
+        entryId: secondService._id,
+        sectionConfigs: [
+          {
+            type: "hero",
+            enabled: true,
+            data: {
+              title: "Content systems",
+              subtitle: "Keep publishing reliable as content grows.",
+            },
+          },
+          {
+            type: "service-list",
+            enabled: true,
+            data: { heading: "A dependable publishing system" },
+          },
+        ],
+      },
+      secondService,
     );
     site.navigation = site.navigation.map((node) =>
       node.id === "nav-services"
@@ -302,44 +461,47 @@ function setEntryField(site, entry, fieldKey, value) {
                 enabled: true,
                 children: [],
               },
+              {
+                id: "nav-content-systems",
+                label: "Content systems",
+                href: "/services/content-systems",
+                enabled: true,
+                children: [],
+              },
             ],
           }
         : node,
     );
+    source.site = site;
+    second = await publishRelease(source, "contract-owner", first._id);
+    updated = project(second._id);
+    await rollbackRelease(source, "contract-owner", first._id, second._id);
+    rolledBack = project(source.site.currentReleaseId);
   }
-  source.site = site;
-
-  const input = {
-    site,
-    templates: source.templates,
-    entries: source.entries,
-    media: [],
-    language: "en",
-    mediaOrigin: "https://cms.example",
-    currency: "USD",
-  };
-  const release = JSON.parse(JSON.stringify(buildRelease(input)));
-  const projected = projectReleaseSnapshot(release);
-  const preview = Object.fromEntries(
-    release.pages.map((page) => [
-      page.content.view,
-      {
-        path: page.path,
-        view: page.content.view,
-        sections: page.content.sections,
-      },
-    ]),
-  );
   process.stdout.write(
     JSON.stringify({
       stage,
       siteId: site._id,
       workspaceId: site.workspaceId,
       models: site.models.map((model) => model.key).sort(),
-      releasePages: release.pages.map((page) => page.path),
-      preview,
-      checksum: projected.checksum,
-      snapshot: projected.snapshot,
+      releasePages: initial.pages,
+      preview: initial.preview,
+      checksum: initial.checksum,
+      snapshot: initial.snapshot,
+      initial,
+      updated,
+      rolledBack,
+      history: {
+        siteId: site._id,
+        releases: source.releases.map((record) => ({
+          id: record._id,
+          siteId: record.siteId,
+          previousReleaseId: record.previousReleaseId,
+        })),
+        currentReleaseId: source.site.currentReleaseId,
+        publishedReleaseIds: source.site.publishedReleaseIds,
+        audits: source.audits.map((event) => event.operation),
+      },
     }),
   );
 })().catch((error) => {

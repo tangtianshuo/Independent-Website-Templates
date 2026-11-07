@@ -13,6 +13,30 @@ const hasHero = computed(() => sections.value.has("hero"));
 const hasServices = computed(() => sections.value.has("service-list"));
 const hasTeam = computed(() => sections.value.has("team-grid"));
 const hasContact = computed(() => sections.value.has("contact-form"));
+const serviceItems = computed(() =>
+  props.page.items?.length
+    ? props.page.items
+    : [
+        {
+          label: demo.value.hero.title,
+          path: "/services",
+          image: demo.value.hero.image,
+          description: demo.value.hero.subtitle,
+        },
+      ],
+);
+const teamItems = computed(() =>
+  props.page.items?.length
+    ? props.page.items
+    : [
+        {
+          label: demo.value.hero.title,
+          path: "/team",
+          image: demo.value.hero.image,
+          description: demo.value.hero.subtitle,
+        },
+      ],
+);
 const leadEnabled = computed(
   () =>
     !props.preview &&
@@ -96,11 +120,15 @@ useHead(() => ({
                 : demo.hero.title
             }}
           </h2>
-          <div class="service-card">
-            <span>01</span>
-            <h3>{{ demo.hero.title }}</h3>
-            <p>{{ demo.hero.subtitle }}</p>
-            <NuxtLink to="/services/discovery">See how it works →</NuxtLink>
+          <div
+            v-for="(service, index) in serviceItems"
+            :key="`${service.path}:${service.label}`"
+            class="service-card"
+          >
+            <span>{{ String(index + 1).padStart(2, "0") }}</span>
+            <h3>{{ service.label }}</h3>
+            <p>{{ service.description }}</p>
+            <NuxtLink :to="service.path">See how it works →</NuxtLink>
           </div>
         </div>
       </section>
@@ -113,11 +141,14 @@ useHead(() => ({
         <div class="service-wrap">
           <p class="service-kicker">The people behind the work</p>
           <h2>Senior practitioners, working together.</h2>
-          <article>
-            <img v-if="demo.hero.image" :src="demo.hero.image" alt="" />
+          <article
+            v-for="member in teamItems"
+            :key="`${member.path}:${member.label}`"
+          >
+            <img v-if="member.image" :src="member.image" alt="" />
             <div>
-              <h3>{{ demo.hero.title }}</h3>
-              <p>{{ demo.hero.subtitle }}</p>
+              <h3>{{ member.label }}</h3>
+              <p>{{ member.description }}</p>
             </div>
           </article>
         </div>
