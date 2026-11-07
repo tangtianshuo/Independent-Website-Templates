@@ -62,6 +62,10 @@ jobs:
         working-directory: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront
       - run: npm run build
         working-directory: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront
+      - name: Verify selected artifact contract before available registration
+        env:
+          TEST_BUILT_CONTRACT: '1'
+        run: node --test test/contract.test.mjs test/contract/built-runtime.test.mjs
       - name: Exercise selected renderer and private preview
         run: npm run test:release:runtime
       - name: Build preview bundle
@@ -185,14 +189,5 @@ jobs:
           PREVIEW_ADAPTER_VERSION: ${{ steps.preview.outputs.adapter_version }}
           SOURCE_COMMIT: ${{ github.sha }}
         run: node scripts/release-registry.mjs
-      - name: Synchronize released template image to server
-        if: needs.metadata.outputs.template_id == 'aeroframe'
-        env:
-          IMAGE_DIGEST: ${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
-          RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
-          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash .github/scripts/deploy.sh
+      - name: Record available candidate boundary
+        run: echo "Available registration completed. Server synchronization requires Platform release gate / platform-gate." >> "$GITHUB_STEP_SUMMARY"
