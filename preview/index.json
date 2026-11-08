@@ -36,6 +36,18 @@
       "adapterVersion": "1",
       "protocolVersion": 1,
       "status": "available"
+    },
+    {
+      "id": "aeroframe",
+      "version": "1.0.5",
+      "manifestChecksum": "sha256:7c872378f8a0c0d100345b2600d81905172156f824815fdd09c06f59a365ea18",
+      "sourceCommit": "f714d5050ccee8f48b2738db5ada0f82f9528848",
+      "bundleDigest": "sha256:d4145cf70fb0466497dd75172fb9dc6f1aff1ba9d297a9f36dd5d8b33e1237df",
+      "artifactDigest": "sha256:8b1fe3017bb4313381bf7109e9706e417e378d1760c607344b41deca69df0df5",
+      "bundlePath": "templates/aeroframe/1.0.5",
+      "adapterVersion": "1",
+      "protocolVersion": 1,
+      "status": "available"
     }
   ]
 }
