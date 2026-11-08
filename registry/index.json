@@ -55,6 +55,17 @@
       "sourceCommit": "d099baeb62e7dfab836d58d00fc117a5f192a141",
       "manifestPath": "templates/aeroframe/1.0.4/template.json",
       "status": "available"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "fireguard",
+      "version": "1.0.1",
+      "manifestChecksum": "sha256:0a3564e19fa0d5b64fa395866c90691bc9c2f0c4a28a27a761f105d38e301e37",
+      "imageRepository": "ghcr.io/tangtianshuo/independent-website-templates/fireguard",
+      "imageDigest": "sha256:3295711ccea13b1087aa4e70cc7a6b41344697bf3a4958a0a4f0b81f7730907a",
+      "sourceCommit": "f286c2ddf9cb1b31f076860c5449f251b07886c9",
+      "manifestPath": "templates/fireguard/1.0.1/template.json",
+      "status": "available"
     }
   ]
 }
