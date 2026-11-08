@@ -40,6 +40,10 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Install current runtime contract dependencies
+        run: |
+          npm ci --prefix templates/aeroframe/1.0.4/storefront
+          npm ci --prefix templates/fireguard/1.0.1/storefront
       - run: npm test
       - name: Validate selected manifest
         env:
