@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { createServer } from 'node:http';
+import { readFileSync } from 'node:fs';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { join, relative } from 'node:path';
 import { promisify } from 'node:util';
 import test from 'node:test';
 
@@ -26,7 +28,7 @@ const preset = {
   showcase: { eyebrow: 'UNMANNED SYSTEMS / FIELD PROVEN', heroLabel: 'AERIAL SYSTEMS FOR COMPLEX MISSIONS', stats: [{ value: '25 min', label: 'Rapid deployment' }, { value: '12 kg', label: 'Payload capacity' }, { value: 'IP54', label: 'Weather protection' }], products: [], solutions: [], faq: [{ question: 'Can the aircraft carry custom payloads?', answer: 'Platforms are designed around modular payload integration. Share your sensor, mount, and mission requirements for a compatibility review.' }] },
 };
 const content = (view, title, items = []) => ({ kind: 'preset-page', view, preset, sections: view === 'home' ? ['hero', 'feature'] : view === 'collection' ? ['heading', 'grid'] : view === 'product' ? ['gallery', 'description', 'information'] : ['story'], seo: { title, description: 'Published description' }, items });
-const snapshot = {
+const commerceSnapshot = {
   schemaVersion: 1, workspaceId, siteId, language: 'en', navigation: [{ label: 'Overview', path: '/' }, { label: 'Platforms', path: '/collections' }, { label: 'Company', path: '/pages/about' }, { label: 'Shipping', path: '/shipping' }], redirects: [{ from: '/pages/old', to: '/pages/about' }, { from: '/safe', to: '/shipping' }],
   pages: [
     { path: '/', pageKey: 'home', entryId: 'home-1', content: content('home', 'Home', [{ label: 'Scout X1', path: '/products/scout-x1', image: '/assets/hero.png', description: 'Long-range survey platform.', price: '$1,200' }]) },
@@ -36,28 +38,29 @@ const snapshot = {
     { path: '/shipping', pageKey: 'shipping', entryId: 'shipping-1', content: content('page', 'Shipping') },
   ],
 };
-
-function gateway() {
-  const requests = [];
-  const server = createServer((req, res) => {
-    requests.push({ url: req.url, authorization: req.headers.authorization });
-    res.setHeader('content-type', 'application/json');
-    if (req.url !== `/api/v1/sites/${siteId}/published-release` || req.headers.authorization !== `Bearer ${credential}`) {
-      res.writeHead(403).end('{}');
-      return;
+const serviceSnapshot = templateId === 'service-studio'
+  ? {
+      ...JSON.parse(readFileSync(`templates/${templateId}/${version}/contract-tests/snapshot.json`, 'utf8')),
+      workspaceId,
+      siteId,
+      redirects: [{ from: '/pages/old', to: '/team' }, { from: '/safe', to: '/contact' }],
     }
-    const canonical = (value) => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object'
-      ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([key, child]) => [key, canonical(child)])) : value;
-    res.end(JSON.stringify({ schemaVersion: 1, workspaceId, siteId, releaseId: 'release-1',
-      checksum: createHash('sha256').update(JSON.stringify(canonical(snapshot))).digest('hex'), snapshot }));
-  });
-  return { server, requests };
-}
+  : null;
+const snapshot = serviceSnapshot ?? commerceSnapshot;
+const canonical = (value) => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object'
+  ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([key, child]) => [key, canonical(child)])) : value;
 
-test('standalone image renders only its bound published release via authenticated gateway', { timeout: 300000 }, async () => {
-  const { server, requests } = gateway();
-  await new Promise((resolve) => server.listen(0, '0.0.0.0', resolve));
+test('standalone image renders only its bound immutable published snapshot', { timeout: 300000 }, async () => {
+  const directory = await mkdtemp(join(process.cwd(), '.template-image-'));
+  const snapshotPath = join(directory, 'published.json');
+  const dockerSnapshotPath = process.env.IMAGE_TEST_HOST_WORKSPACE
+    ? join(process.env.IMAGE_TEST_HOST_WORKSPACE, relative(process.cwd(), snapshotPath))
+    : snapshotPath;
+  const publishedSnapshot = serviceSnapshot ?? { schemaVersion: 1, workspaceId, siteId, releaseId: 'release-1',
+    checksum: createHash('sha256').update(JSON.stringify(canonical(snapshot))).digest('hex'), snapshot };
+  await writeFile(snapshotPath, JSON.stringify(publishedSnapshot), { mode: 0o644 });
   let container;
+  let base;
   try {
     if (!process.env.RELEASE_IMAGE) await exec('docker', ['build', '--build-arg', `SOURCE_COMMIT=${process.env.SOURCE_COMMIT || 'unknown'}`, '--build-arg', `RELEASE_VERSION=${process.env.RELEASE_VERSION || version}`, '-f', `templates/${templateId}/${version}/Dockerfile`, '-t', image, `templates/${templateId}/${version}`], { timeout: 240000 });
     if (process.env.RELEASE_VERSION) {
@@ -66,10 +69,10 @@ test('standalone image renders only its bound published release via authenticate
       assert.equal(imageVersion.trim(), process.env.RELEASE_VERSION);
       if (process.env.SOURCE_COMMIT) assert.equal(imageRevision.trim(), process.env.SOURCE_COMMIT);
     }
-    const { stdout } = await exec('docker', ['run', '-d', '--rm', '--add-host', 'host.docker.internal:host-gateway', '-p', '127.0.0.1::3000', '-e', `NUXT_GATEWAY_URL=http://host.docker.internal:${server.address().port}`, '-e', `NUXT_WORKSPACE_ID=${workspaceId}`, '-e', `NUXT_SITE_ID=${siteId}`, '-e', `NUXT_SITE_CREDENTIAL=${credential}`, image]);
+    const { stdout } = await exec('docker', ['run', '-d', '--rm', '-p', '127.0.0.1::3000', '-v', `${dockerSnapshotPath}:/app/published.json:ro`, '-e', 'PUBLISHED_SNAPSHOT_PATH=/app/published.json', '-e', 'NUXT_PUBLISHED_SNAPSHOT_PATH=/app/published.json', '-e', `NUXT_WORKSPACE_ID=${workspaceId}`, '-e', `NUXT_SITE_ID=${siteId}`, image]);
     container = stdout.trim();
     const { stdout: port } = await exec('docker', ['port', container, '3000/tcp']);
-    const base = `http://127.0.0.1:${port.trim().match(/:(\d+)$/)?.[1]}`;
+    base = `http://127.0.0.1:${port.trim().match(/:(\d+)$/)?.[1]}`;
     let health;
     for (let attempt = 0; attempt < 40; attempt++) {
       try { health = await fetch(`${base}/healthz`); if (health.ok) break; } catch {}
@@ -77,32 +80,35 @@ test('standalone image renders only its bound published release via authenticate
     }
     assert.equal(health?.status, 200);
     assert.equal(await health.text(), 'ok');
-    for (const [path, expected] of [['/', 'Built for the missions ahead'], ['/collections', 'Aircraft systems'], ['/products/scout-x1', 'Aero X8 industrial platform'], ['/pages/about', 'Engineering in the field'], ['/shipping', 'Engineering in the field']]) {
+    const expectedPages = serviceSnapshot
+      ? [['/', 'Clearline digital discovery'], ['/services', 'Services'], ['/services/discovery', 'Digital discovery'], ['/team', 'Mina Park'], ['/contact', 'Contact']]
+      : [['/', 'Built for the missions ahead'], ['/collections', 'Aircraft systems'], ['/products/scout-x1', 'Aero X8 industrial platform'], ['/pages/about', 'Engineering in the field'], ['/shipping', 'Engineering in the field']];
+    const expectedBrand = serviceSnapshot ? 'Clearline Studio' : 'AEROWORKS';
+    for (const [path, expected] of expectedPages) {
       const response = await fetch(`${base}${path}?siteId=attacker`, { headers: { Host: 'attacker.test' } });
       assert.equal(response.status, 200, path);
       const html = await response.text();
       assert.ok(html.includes(expected), path);
-      assert.ok(html.includes('AEROWORKS'), path);
+      assert.ok(html.includes(expectedBrand), path);
       assert.ok(!html.includes(credential) && !html.includes('adminOrigin') && !html.includes('cmsInternalOrigin'));
-    if (path === '/') assert.match(html, /<summary[^>]*>Can the aircraft carry custom payloads\?/);
+    if (!serviceSnapshot && path === '/') assert.match(html, /<summary[^>]*>Can the aircraft carry custom payloads\?/);
     }
     const old = await fetch(`${base}/pages/old`, { redirect: 'manual' });
     assert.equal(old.status, 308);
-    assert.equal(old.headers.get('location'), '/pages/about');
+    assert.equal(old.headers.get('location'), serviceSnapshot ? '/team' : '/pages/about');
     const safe = await fetch(`${base}/safe`, { redirect: 'manual' });
     assert.equal(safe.status, 308);
-    assert.equal(safe.headers.get('location'), '/shipping');
+    assert.equal(safe.headers.get('location'), serviceSnapshot ? '/contact' : '/shipping');
     const exposed = await (await fetch(`${base}/api/published?path=/`)).text();
-    for (const privateField of ['entryId', 'pageKey', 'workspaceId', 'siteId', 'releaseId', 'checksum', 'site-secret']) {
+    assert.equal(JSON.parse(exposed).siteId, siteId);
+    for (const privateField of ['entryId', 'pageKey', 'workspaceId', 'releaseId', 'checksum', 'site-secret']) {
       assert.ok(!exposed.includes(privateField), privateField);
     }
     assert.equal((await fetch(`${base}/pages/unpublished`)).status, 404);
     assert.equal((await fetch(`${base}/unpublished`)).status, 404);
     assert.equal((await fetch(`${base}/preview`)).status, 404);
-    assert.ok(requests.length >= 4);
-    assert.ok(requests.every((request) => request.url === `/api/v1/sites/${siteId}/published-release` && request.authorization === `Bearer ${credential}`));
   } finally {
     if (container) await exec('docker', ['stop', container]);
-    await new Promise((resolve) => server.close(resolve));
+    await rm(directory, { recursive: true, force: true });
   }
 });
