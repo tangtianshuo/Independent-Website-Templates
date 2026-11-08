@@ -224,7 +224,12 @@ test('rejects duplicate editor declarations and invalid migration identities', a
 });
 
 test('checked-in current manifests declare editor and renderer identities', async () => {
-  for (const path of ['../templates/aeroframe/1.0.4/template.json', '../templates/fireguard/1.0.1/template.json']) {
+  for (const path of [
+    '../templates/aeroframe/1.0.4/template.json',
+    '../templates/aeroframe/1.0.5/template.json',
+    '../templates/fireguard/1.0.1/template.json',
+    '../templates/fireguard/1.0.2/template.json',
+  ]) {
     const root = new URL(path.replace('template.json', ''), import.meta.url);
     const candidate = JSON.parse(await readFile(new URL('template.json', root), 'utf8'));
     await validateManifest(candidate, root);
