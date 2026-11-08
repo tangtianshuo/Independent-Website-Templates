@@ -48,6 +48,18 @@
       "adapterVersion": "1",
       "protocolVersion": 1,
       "status": "available"
+    },
+    {
+      "id": "fireguard",
+      "version": "1.0.2",
+      "manifestChecksum": "sha256:b91e617c87afc965287d9d4efc0758cb9feb05f74acdf625746b6919dcce403b",
+      "sourceCommit": "ec06c8d577a551de4c600058c142e371ea9a771b",
+      "bundleDigest": "sha256:48c9cc77657b28443047147ca10ee803eb228b878e272cbda11e7a7204c57900",
+      "artifactDigest": "sha256:a80e35afaad94d434e6a36bf3788cea6187ee520495e2390303f89817b1c3b02",
+      "bundlePath": "templates/fireguard/1.0.2",
+      "adapterVersion": "1",
+      "protocolVersion": 1,
+      "status": "available"
     }
   ]
 }
