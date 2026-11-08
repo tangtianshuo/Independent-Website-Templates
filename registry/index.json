@@ -66,6 +66,17 @@
       "sourceCommit": "f286c2ddf9cb1b31f076860c5449f251b07886c9",
       "manifestPath": "templates/fireguard/1.0.1/template.json",
       "status": "available"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "service-studio",
+      "version": "1.0.0",
+      "manifestChecksum": "sha256:1706f3984d8c708066a7d759062cf493bd16b54fe8abc9514727fb32332d76f6",
+      "imageRepository": "ghcr.io/tangtianshuo/independent-website-templates/service-studio",
+      "imageDigest": "sha256:935670c12411e2df0788feaf9d7c06c252a7ee8508660f78585f658b82f9d815",
+      "sourceCommit": "2c90faa2804b83f4f1a4f61368d8efc922f9292b",
+      "manifestPath": "templates/service-studio/1.0.0/template.json",
+      "status": "available"
     }
   ]
 }

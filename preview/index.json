@@ -24,6 +24,18 @@
       "adapterVersion": "1",
       "protocolVersion": 1,
       "status": "available"
+    },
+    {
+      "id": "service-studio",
+      "version": "1.0.0",
+      "manifestChecksum": "sha256:1706f3984d8c708066a7d759062cf493bd16b54fe8abc9514727fb32332d76f6",
+      "sourceCommit": "2c90faa2804b83f4f1a4f61368d8efc922f9292b",
+      "bundleDigest": "sha256:870b8d189ac3e0340929089c32f3d93dc873d2d0ce32dbf6e4b7d16de46b0756",
+      "artifactDigest": "sha256:c8bcc70842a590a01fdf2a1fffb3d6ce188792b864759a1179a4c2b7f346a6aa",
+      "bundlePath": "templates/service-studio/1.0.0",
+      "adapterVersion": "1",
+      "protocolVersion": 1,
+      "status": "available"
     }
   ]
 }
