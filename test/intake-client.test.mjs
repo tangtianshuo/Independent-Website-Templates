@@ -5,8 +5,8 @@ import vm from 'node:vm';
 import test from 'node:test';
 
 for (const [id, version] of [
-  ['aeroframe', '1.0.4'],
-  ['fireguard', '1.0.1'],
+  ['aeroframe', '1.0.5'],
+  ['fireguard', '1.0.2'],
 ]) {
   const root = new URL(`../templates/${id}/${version}/storefront/`, import.meta.url);
   const require = createRequire(new URL('package.json', root));
