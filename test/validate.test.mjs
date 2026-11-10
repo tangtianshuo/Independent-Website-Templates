@@ -227,6 +227,7 @@ test('checked-in current manifests declare editor and renderer identities', asyn
   for (const path of [
     '../templates/aeroframe/1.0.4/template.json',
     '../templates/aeroframe/1.0.5/template.json',
+    '../templates/aeroframe/1.0.6/template.json',
     '../templates/fireguard/1.0.1/template.json',
     '../templates/fireguard/1.0.2/template.json',
   ]) {

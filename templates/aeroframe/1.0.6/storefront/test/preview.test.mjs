@@ -1,0 +1,185 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+import * as published from '../server/utils/published.mjs';
+
+const manifest = JSON.parse(await readFile(new URL('../../template.json', import.meta.url)));
+const content = { kind: 'preset-page', view: 'collection', preset: { id: 'aeroframe', version: '1.0.6', name: manifest.name, description: manifest.description, ...manifest.presentation }, sections: ['grid', 'heading'], seo: { title: 'Private catalog', description: '' }, items: [] };
+const snapshot = { schemaVersion: 1, workspaceId: 'cms-workspace', siteId: 'cms-site', language: 'en', pages: [{ path: '/catalog', pageKey: 'collections', entryId: 'cms-entry', content }], navigation: [{ label: 'Catalog', path: '/catalog' }], redirects: [] };
+
+test('preview accepts actual CMS snapshot and preset-site wrapper using published normalization', () => {
+  assert.equal(typeof published.previewPage, 'function');
+  for (const value of [snapshot, { kind: 'preset-site', siteName: 'Private site', ...snapshot }]) {
+    const page = published.previewPage(value, '/catalog');
+    assert.equal(page.content.view, 'collection');
+    assert.equal(page.content.seo.title, 'Private catalog');
+    assert.equal(page.content.preset.theme.accent, '#4f7dff');
+    assert.deepEqual(page.content.sections, ['grid', 'heading']);
+    assert.equal(page.entryId, undefined);
+  }
+});
+
+test('preview rejects unknown payload fields, unsafe themes, duplicate paths and invalid views', () => {
+  assert.equal(typeof published.previewPage, 'function');
+  for (const mutate of [
+    value => { value.extra = 'private'; },
+    value => { value.pages.push(structuredClone(value.pages[0])); },
+    value => { value.pages[0].content.view = 'unexpected'; },
+    value => { value.pages[0].content.preset.theme.font = 'Arial; color:red'; },
+    value => { value.pages[0].content.sections = ['unknown']; },
+    value => { value.pages[0].path = '/preview'; },
+  ]) {
+    const value = structuredClone(snapshot); mutate(value);
+    assert.equal(published.previewPage(value, '/catalog'), null);
+  }
+});
+
+test('preview messages require exact configured admin origin and the embedding parent', async () => {
+  const preview = await import('../shared/snapshot.mjs');
+  assert.equal(typeof preview.acceptPreviewMessage, 'function');
+  const parent = {}; const self = {};
+  const context = { adminOrigin: 'https://cms.example.com', parent, self };
+  const event = { origin: 'https://cms.example.com', source: parent, data: { type: 'storefront:preview', payload: { kind: 'preset-site', siteName: 'CMS', ...snapshot } } };
+  assert.equal(preview.acceptPreviewMessage(event, context)?.page.path, '/catalog');
+  assert.equal(preview.acceptPreviewMessage({ ...event, origin: 'https://cms.example.com.attacker.test' }, context), null);
+  assert.equal(preview.acceptPreviewMessage({ ...event, source: {} }, context), null);
+  assert.equal(preview.acceptPreviewMessage(event, { ...context, adminOrigin: '' }), null);
+  assert.equal(preview.acceptPreviewMessage(event, { ...context, adminOrigin: 'https://cms.example.com/path' }), null);
+  assert.equal(preview.acceptPreviewMessage(event, { ...context, self: parent }), null);
+  assert.equal(preview.acceptPreviewMessage({ ...event, data: { type: 'other', payload: snapshot } }, context), null);
+});
+
+test('preview can accept the embedding origin only from its parent and exact template', async () => {
+  const preview = await import('../shared/snapshot.mjs');
+  const parent = {}; const self = {};
+  const expected = { id: 'aeroframe', version: '1.0.6' };
+  const event = {
+    origin: 'https://cms.example.com',
+    source: parent,
+    data: {
+      type: 'storefront:preview-origin',
+      protocolVersion: 1,
+      templateId: expected.id,
+      templateVersion: expected.version,
+      origin: 'https://cms.example.com',
+    },
+  };
+  assert.equal(
+    preview.acceptPreviewOriginMessage(event, { parent, self, expected }),
+    'https://cms.example.com',
+  );
+  assert.equal(
+    preview.acceptPreviewOriginMessage(
+      { ...event, source: {} },
+      { parent, self, expected },
+    ),
+    null,
+  );
+  assert.equal(
+    preview.acceptPreviewOriginMessage(
+      { ...event, origin: 'https://attacker.test' },
+      { parent, self, expected },
+    ),
+    null,
+  );
+  assert.equal(
+    preview.acceptPreviewOriginMessage(
+      { ...event, data: { ...event.data, templateVersion: '1.0.4' } },
+      { parent, self, expected },
+    ),
+    null,
+  );
+});
+
+test('navigation targets use explicit view instead of fixed collection paths', () => {
+  const page = published.previewPage(snapshot, '/catalog');
+  assert.equal(page?.links?.collection, '/catalog');
+});
+
+test('preview shell is private, non-indexable and only framed by configured CMS origin', async () => {
+  const preview = await import('../shared/snapshot.mjs');
+  assert.equal(typeof preview.previewHeaders, 'function');
+  const headers = preview.previewHeaders('https://cms.example.com');
+  assert.equal(headers['cache-control'], 'no-store');
+  assert.equal(headers['x-robots-tag'], 'noindex, nofollow, noarchive');
+  assert.equal(headers['content-security-policy'], "frame-ancestors https://cms.example.com");
+  assert.equal(preview.previewHeaders(''), null);
+  assert.equal(preview.previewHeaders('https://cms.example.com/evil'), null);
+});
+
+test('preview refuses snapshots for a different template version or template identity', () => {
+  for (const [id, version] of [['aeroframe', '1.0.2'], ['another-template', '1.0.6']]) {
+    const value = structuredClone(snapshot);
+    value.pages[0].content.preset.id = id;
+    value.pages[0].content.preset.version = version;
+    assert.equal(published.previewPage(value, '/catalog'), null);
+  }
+});
+
+
+test('preview handshake announces this immutable manifest identity', async () => {
+  const shell = await readFile(new URL('../pages/preview.vue', import.meta.url), 'utf8');
+  assert.ok(shell.includes(`templateId: '${manifest.id}'`));
+  assert.ok(shell.includes(`templateVersion: '${manifest.version}'`));
+});
+
+
+test('declared hero button controls preserve layout and reject unsafe links', async () => {
+  const { previewPage } = await import('../shared/snapshot.mjs');
+  const value = structuredClone(snapshot);
+  value.pages[0].path = '/'; value.pages[0].pageKey = 'home';
+  value.pages[0].content.view = 'home'; value.pages[0].content.sections = ['hero', 'feature'];
+  value.pages[0].content.sectionConfigs = [{ type: 'hero', enabled: true, data: { title: 'Edited title', showButton: false, buttonHref: '/catalog' } }, { type: 'feature', enabled: true, data: {} }];
+  const page = previewPage(value, '/');
+  assert.equal(page.content.preset.demo.hero.title, 'Edited title');
+  assert.equal(page.content.showHeroButton, false);
+  assert.equal(page.content.heroButtonHref, '/catalog');
+  value.pages[0].content.sectionConfigs[0].data.buttonHref = 'javascript:alert(1)';
+  assert.equal(previewPage(value, '/'), null);
+  const declaration = manifest.editor.sections.find(section => section.type === 'hero');
+  assert.equal(declaration.props.title.label, '标题');
+  assert.deepEqual(declaration.props.buttonHref.visibleWhen, { field: 'showButton', equals: true });
+});
+
+
+test('collection heading marker survives actual Vue template compilation', async () => {
+  const { parse, compileTemplate } = await import('@vue/compiler-sfc');
+  const source = await readFile(new URL('../components/AeroPage.vue', import.meta.url), 'utf8');
+  const { descriptor } = parse(source);
+  const compiled = compileTemplate({ source: descriptor.template.content, filename: 'AeroPage.vue', id: 'heading-marker' });
+  assert.deepEqual(compiled.errors, []);
+  assert.match(compiled.code, /"data-section-type": "heading"/);
+});
+
+
+test('preview builds disable metadata and payload fetches while public config keeps defaults', async () => {
+  const { loadNuxtConfig } = await import('nuxt/kit');
+  const before = process.env.PREVIEW_APP_BASE_URL;
+  try {
+    process.env.PREVIEW_APP_BASE_URL = '/preview/local/1.0.0/';
+    const preview = await loadNuxtConfig({ cwd: new URL('..', import.meta.url).pathname });
+    assert.equal(preview.experimental.appManifest, false);
+    assert.equal(preview.experimental.payloadExtraction, false);
+    delete process.env.PREVIEW_APP_BASE_URL;
+    const publicConfig = await loadNuxtConfig({ cwd: new URL('..', import.meta.url).pathname });
+    assert.equal(publicConfig.app.baseURL, '/');
+    assert.notEqual(publicConfig.experimental?.appManifest, false);
+    assert.notEqual(publicConfig.experimental?.payloadExtraction, false);
+  } finally {
+    if (before === undefined) delete process.env.PREVIEW_APP_BASE_URL;
+    else process.env.PREVIEW_APP_BASE_URL = before;
+  }
+});
+
+
+test('preview navigation removes only its exact configured base and preserves suffixes', async () => {
+  const { previewNavigationPath } = await import('../shared/snapshot.mjs');
+  assert.equal(typeof previewNavigationPath, 'function');
+  const base = '/preview/local/1.0.0/';
+  assert.equal(previewNavigationPath(base, base), '/');
+  assert.equal(previewNavigationPath(base + 'second', base), '/second');
+  assert.equal(previewNavigationPath(base + 'second?view=all#details', base), '/second?view=all#details');
+  for (const path of ['/second', '/preview/local/1.0.00/second', '/preview/foreign/1.0.0/second']) assert.equal(previewNavigationPath(path, base), path);
+  assert.equal(previewNavigationPath('/second', '/'), '/second');
+  for (const path of ['https://foreign.example/second', '//foreign.example/second', 'mailto:test@example.com']) assert.equal(previewNavigationPath(path, base), null);
+});

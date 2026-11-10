@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import test from 'node:test';
 
 for (const [id, version] of [
-  ['aeroframe', '1.0.5'],
+  ['aeroframe', '1.0.6'],
   ['fireguard', '1.0.2'],
 ]) {
   const root = new URL(`../templates/${id}/${version}/storefront/`, import.meta.url);

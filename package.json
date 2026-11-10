@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "validate": "node scripts/validate.mjs templates/aeroframe/1.0.5/template.json",
+    "validate": "node scripts/validate.mjs templates/aeroframe/1.0.6/template.json",
     "validate:1.0.0": "node scripts/validate.mjs templates/aeroframe/1.0.0/template.json",
     "validate:1.0.1": "node scripts/validate.mjs templates/aeroframe/1.0.1/template.json",
     "validate:1.0.2": "node scripts/validate.mjs templates/aeroframe/1.0.2/template.json",
@@ -19,6 +19,7 @@
     "validate:1.0.4": "node scripts/validate.mjs templates/aeroframe/1.0.4/template.json",
     "validate:fireguard:1.0.1": "node scripts/validate.mjs templates/fireguard/1.0.1/template.json",
     "validate:aeroframe:1.0.5": "node scripts/validate.mjs templates/aeroframe/1.0.5/template.json",
+    "validate:aeroframe:1.0.6": "node scripts/validate.mjs templates/aeroframe/1.0.6/template.json",
     "validate:fireguard:1.0.2": "node scripts/validate.mjs templates/fireguard/1.0.2/template.json",
     "test:contract:runtime": "TEST_BUILT_CONTRACT=1 node --test test/contract/built-runtime.test.mjs"
   },
