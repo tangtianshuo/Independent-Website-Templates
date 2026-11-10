@@ -64,7 +64,20 @@ jobs:
         working-directory: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront
       - name: Exercise selected renderer and private preview
         run: npm run test:runtime
-
+      - name: Build preview bundle
+        env:
+          PREVIEW_APP_BASE_URL: /preview/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/
+          NUXT_PUBLIC_PREVIEW_ADMIN_ORIGIN: ${{ vars.CMS_ORIGIN }}
+        run: |
+          npm run build:preview
+          rm -rf "$RUNNER_TEMP/preview-bundle"
+          node ../../../../scripts/preview-bundle.mjs \
+            --public-dir .output/public \
+            --output-dir "$RUNNER_TEMP/preview-bundle" \
+            --template-id "${{ needs.metadata.outputs.template_id }}" \
+            --template-version "${{ needs.metadata.outputs.version }}"
+          echo "bundle_digest=$(node -p "require('$RUNNER_TEMP/preview-bundle/preview-bundle.json').bundleDigest")" >> "$GITHUB_OUTPUT"
+        working-directory: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront
   publish:
     if: needs.metadata.outputs.publish == 'true'
     needs: [metadata, verify]
@@ -152,11 +165,39 @@ jobs:
           SOURCE_COMMIT: ${{ github.sha }}
           RELEASE_IMAGE: ghcr.io/tangtianshuo/independent-website-templates/${{ needs.metadata.outputs.template_id }}@${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
         run: node --test test/image.test.mjs
+      - name: Build and publish immutable preview bundle
+        env:
+          PREVIEW_APP_BASE_URL: /preview/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/
+          NUXT_PUBLIC_PREVIEW_ADMIN_ORIGIN: ${{ vars.CMS_ORIGIN }}
+        run: |
+          npm ci
+          npm run build:preview
+          rm -rf "$RUNNER_TEMP/preview-bundle"
+          node ../../../../scripts/preview-bundle.mjs \
+            --public-dir .output/public \
+            --output-dir "$RUNNER_TEMP/preview-bundle" \
+            --template-id "${{ needs.metadata.outputs.template_id }}" \
+            --template-version "${{ needs.metadata.outputs.version }}"
+          echo "bundle_digest=$(node -p "require('$RUNNER_TEMP/preview-bundle/preview-bundle.json').bundleDigest")" >> "$GITHUB_OUTPUT"
+          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner \
+            -czf "$RUNNER_TEMP/preview-bundle.tar.gz" -C "$RUNNER_TEMP/preview-bundle" .
+          bundle_repository="ghcr.io/tangtianshuo/independent-website-preview-bundles/${{ needs.metadata.outputs.template_id }}"
+          bundle_tag="${bundle_repository}:${{ needs.metadata.outputs.template_id }}-v${{ needs.metadata.outputs.version }}"
+          docker run --rm -v "$RUNNER_TEMP:/workspace" ghcr.io/oras-project/oras:v1.2.3 \
+            push "$bundle_tag" /workspace/preview-bundle.tar.gz \
+            --artifact-type application/vnd.bcms.preview.bundle.v1 \
+            --format '{{.digest}}' > "$RUNNER_TEMP/preview-digest.txt"
+          echo "artifact_digest=$(cat "$RUNNER_TEMP/preview-digest.txt")" >> "$GITHUB_OUTPUT"
+        id: preview
+        working-directory: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront
       - name: Append immutable registry record
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TEMPLATE_VERSION: ${{ needs.metadata.outputs.version }}
           IMAGE_DIGEST: ${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
+          PREVIEW_BUNDLE_DIGEST: ${{ steps.preview.outputs.bundle_digest }}
+          PREVIEW_ARTIFACT_DIGEST: ${{ steps.preview.outputs.artifact_digest }}
+          PREVIEW_ADAPTER_VERSION: '1'
           SOURCE_COMMIT: ${{ github.sha }}
         run: node scripts/release-registry.mjs
       - name: Synchronize released template image to server

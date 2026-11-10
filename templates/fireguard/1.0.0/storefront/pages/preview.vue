@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { acceptPreviewMessage, previewAdminOrigin, previewPage } from '#shared/snapshot.mjs';
+import { acceptPreviewMessage, previewAdminOrigin, previewPage } from '#preview-shared/snapshot.mjs';
 
 const adminOrigin = previewAdminOrigin(useRuntimeConfig().public.previewAdminOrigin);
 const snapshot = shallowRef<any>(null);

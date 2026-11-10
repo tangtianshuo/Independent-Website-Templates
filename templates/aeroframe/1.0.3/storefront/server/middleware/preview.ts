@@ -1,4 +1,4 @@
-import { previewHeaders } from '../../shared/snapshot.mjs';
+import { previewHeaders } from '#preview-shared/snapshot.mjs';
 
 export default defineEventHandler((event) => {
   if (!/^\/preview\/?$/.test(getRequestURL(event).pathname)) return;

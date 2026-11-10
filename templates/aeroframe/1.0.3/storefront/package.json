@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "engines": { "node": ">=22 <23" },
-  "scripts": { "build": "nuxt build", "test": "node --test test/*.test.mjs" },
+    "scripts": { "build": "nuxt build", "build:preview": "nuxt generate", "test": "node --test test/*.test.mjs" },
   "dependencies": { "nuxt": "4.6.2" }
 }

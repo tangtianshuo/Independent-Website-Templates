@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "nuxt build",
+    "build:preview": "nuxt generate",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {

@@ -92,3 +92,6 @@ export async function fetchPublishedPage({ gatewayUrl, workspaceId, siteId, cred
   if (!response.ok) throw new Error(`Published gateway returned ${response.status}`);
   return publishedPage(await response.json(), workspaceId, siteId, path);
 }
+
+// preview-adapter-exports
+export { previewPage, acceptPreviewMessage, previewAdminOrigin, previewHeaders } from '../../shared/snapshot.mjs';

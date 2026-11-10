@@ -48,6 +48,28 @@ test/                                      仓库级测试
 2. 清单中的 `id`、`version` 应与目录一致；`version` 使用 `主版本.次版本.修订版本` 格式。为资源填写真实文件的 SHA-256 校验值和匹配的 MIME 类型。
 3. 在仓库根目录执行 `node scripts/validate.mjs templates/<id>/<version>/template.json`、`npm test`，并在模板的 `storefront/` 目录运行测试与构建。
 
+4. 为模板实现静态私有预览入口 `/preview`，然后生成统一预览 Bundle：
+
+```sh
+PREVIEW_APP_BASE_URL=/preview/<id>/<version>/ \
+NUXT_PUBLIC_PREVIEW_ADMIN_ORIGIN=https://cms.example.com \
+npm run build:preview
+
+node ../../../../scripts/preview-bundle.mjs \
+  --public-dir .output/public \
+  --output-dir /tmp/preview-bundle \
+  --template-id <id> \
+  --template-version <version>
+```
+
+`preview-bundle.json`、OCI Artifact digest 和模板身份会写入 `registry` 分支的
+`registry/preview/index.json`。已发布版本和预览 Bundle 均不可覆盖；预览代码发生
+变化时也发布新的模板补丁版本。
+
+历史 AeroFrame 1.0.0–1.0.2 的独立预览源由
+`scripts/create-legacy-preview.mjs` 生成。该脚本只增加预览入口、适配器和测试，
+不改写原有页面与 Gateway 发布逻辑。
+
 校验器除 Schema 外还会检查模型与字段引用、页面路由冲突、资源类型、文件路径、图片内容和 SHA-256。`npm run validate:1.0.0` 验证旧版清单，`npm run validate:1.0.1` 和 `npm run validate:1.0.2` 验证包含 CMS presentation 字段的发布清单。
 
 ## 发布状态
