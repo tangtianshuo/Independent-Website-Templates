@@ -13,12 +13,12 @@ test('builds a content-addressed preview bundle from generated static output', a
     const output = join(root, 'bundle');
     await mkdir(join(generated, '_nuxt'), { recursive: true });
     await mkdir(join(generated, 'preview'), { recursive: true });
-    await writeFile(join(generated, 'preview', 'index.html'), '<script src="/preview/fireguard/1.0.0/_nuxt/app.js"></script>');
+    await writeFile(join(generated, 'index.html'), '<script src="/preview/fireguard/1.0.0/_nuxt/app.js"></script>');
     await writeFile(join(generated, 'preview', '_payload.json'), '{}');
     await writeFile(join(generated, '_nuxt', 'app.js'), 'console.log("preview")');
     const manifest = await buildPreviewBundle({
         publicDir: generated, outputDir: output,
-        templateId: 'fireguard', templateVersion: '1.0.0',
+        templateId: 'fireguard', templateVersion: '1.0.0', manifestChecksum: `sha256:${'a'.repeat(64)}`, sourceCommit: 'b'.repeat(40),
     });
     assert.match(manifest.bundleDigest, /^sha256:[a-f0-9]{64}$/);
     assert.equal(manifest.files.length, 3);

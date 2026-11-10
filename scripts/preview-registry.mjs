@@ -1,4 +1,6 @@
-import { readFile, rename, writeFile } from 'node:fs/promises';
+import { isDeepStrictEqual } from 'node:util';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const idPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const versionPattern = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/;
@@ -10,7 +12,7 @@ const recordKeys = [
 ];
 
 export function validPreviewRecord(record) {
-    return record && recordKeys.every(key => Object.hasOwn(record, key)) && Object.keys(record).length === recordKeys.length &&
+    return record && !Array.isArray(record) && ['id','version','manifestChecksum','sourceCommit','bundleDigest','artifactDigest','bundlePath','adapterVersion','status'].every(key => typeof record[key] === 'string') && recordKeys.every(key => Object.hasOwn(record, key)) && Object.keys(record).length === recordKeys.length &&
         idPattern.test(record.id) && versionPattern.test(record.version) &&
         digestPattern.test(record.manifestChecksum) && commitPattern.test(record.sourceCommit) &&
         digestPattern.test(record.bundleDigest) && digestPattern.test(record.artifactDigest) &&
@@ -19,28 +21,33 @@ export function validPreviewRecord(record) {
         record.protocolVersion === 1 && record.status === 'available';
 }
 
-export function appendPreviewRecord(registry, incoming) {
+export function validatePreviewRegistry(registry) {
     if (!registry || registry.schemaVersion !== 1 || !Array.isArray(registry.records) ||
-        !validPreviewRecord(incoming)) throw new Error('Invalid preview registry record');
+        Object.keys(registry).some(key => !['schemaVersion', 'records'].includes(key)) ||
+        registry.records.some(record => !validPreviewRecord(record)) ||
+        new Set(registry.records.map(record => `${record.id}@${record.version}`)).size !== registry.records.length) throw new Error('Invalid preview registry record');
+    return registry;
+}
+
+export function appendPreviewRecord(registry, incoming) {
+    validatePreviewRegistry(registry);
+    if (!validPreviewRecord(incoming)) throw new Error('Invalid preview registry record');
     const existing = registry.records.find(record => record.id === incoming.id && record.version === incoming.version);
     if (existing) {
-        if (JSON.stringify(existing) !== JSON.stringify(incoming)) throw new Error('Published preview version conflict');
+        if (!isDeepStrictEqual(existing, incoming)) throw new Error('Published preview version conflict');
         return registry;
     }
     return { schemaVersion: 1, records: [...registry.records, incoming] };
 }
 
 export async function appendPreviewRegistryFile({ path, record }) {
-    const registry = JSON.parse(await readFile(path, 'utf8'));
-    const next = appendPreviewRecord(registry, record);
-    if (next === registry) return { record, changed: false };
-    const temporary = `${path}.${process.pid}.tmp`;
-    await writeFile(temporary, `${JSON.stringify(next, null, 2)}\n`);
-    await rename(temporary, path);
-    return { record, changed: true };
+    const registryRoot = dirname(dirname(resolve(path)));
+    if (resolve(path) !== join(registryRoot, 'preview', 'index.json')) throw new Error('Preview registry must be checkout-relative preview/index.json');
+    const { appendPreviewRelease } = await import('./preview-release-registry.mjs');
+    return { record, changed: await appendPreviewRelease({ registryRoot, record }) === 'written' };
 }
 
-if (process.argv[1]?.endsWith('preview-registry.mjs')) {
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
     const record = {
         id: process.env.TEMPLATE_ID,
         version: process.env.TEMPLATE_VERSION,

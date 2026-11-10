@@ -1,6 +1,7 @@
+import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
-import { join, relative, resolve } from 'node:path';
+import { cp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { join, relative, resolve, sep } from 'node:path';
 
 const idPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const versionPattern = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/;
@@ -16,8 +17,8 @@ async function files(root, current = root) {
     return result.sort();
 }
 
-export async function buildPreviewBundle({ publicDir, outputDir, templateId, templateVersion, protocolVersion = 1 }) {
-    if (!idPattern.test(templateId) || !versionPattern.test(templateVersion) || protocolVersion !== 1) {
+export async function buildPreviewBundle({ publicDir, outputDir, templateId, templateVersion, protocolVersion = 1, manifestChecksum, sourceCommit }) {
+    if (!idPattern.test(templateId) || !versionPattern.test(templateVersion) || protocolVersion !== 1 || !/^sha256:[a-f0-9]{64}$/.test(manifestChecksum || '') || !/^[a-f0-9]{40}$/.test(sourceCommit || '')) {
         throw new Error('Invalid preview bundle identity');
     }
     const generated = resolve(publicDir);
@@ -27,19 +28,14 @@ export async function buildPreviewBundle({ publicDir, outputDir, templateId, tem
     } catch (cause) {
         if (cause?.code !== 'ENOENT') throw cause;
     }
-    const previewHtml = await readFile(join(generated, 'preview', 'index.html'));
+    if (output === generated || output.startsWith(`${generated}${sep}`)) throw new Error('Output overlaps generated files');
+    if ((await files(generated)).includes('preview-bundle.json')) throw new Error('Generated files contain a reserved bundle manifest');
+    const previewHtml = await readFile(join(generated, 'index.html'));
     const expectedBase = `/preview/${templateId}/${templateVersion}/`;
     if (!previewHtml.toString('utf8').includes(expectedBase)) {
         throw new Error(`Preview HTML does not use the registered base path ${expectedBase}`);
     }
-    await mkdir(output, { recursive: true });
-    await cp(join(generated, '_nuxt'), join(output, '_nuxt'), { recursive: true });
-    await cp(join(generated, 'preview', 'index.html'), join(output, 'index.html'));
-    try {
-        await cp(join(generated, 'preview', '_payload.json'), join(output, 'preview', '_payload.json'));
-    } catch {
-        // Route payloads are optional; the preview shell can run without them.
-    }
+    await cp(generated, output, { recursive: true, errorOnExist: true });
     const entries = [];
     for (const file of await files(output)) {
         const bytes = await readFile(join(output, file));
@@ -52,6 +48,8 @@ export async function buildPreviewBundle({ publicDir, outputDir, templateId, tem
         templateVersion,
         protocolVersion,
         bundleDigest,
+        manifestChecksum,
+        sourceCommit,
         files: entries,
     };
     await writeFile(join(output, 'preview-bundle.json'), `${JSON.stringify(manifest, null, 2)}\n`);
@@ -63,12 +61,14 @@ function argument(name) {
     return index >= 0 ? process.argv[index + 1] : undefined;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname)) {
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
     const manifest = await buildPreviewBundle({
         publicDir: argument('public-dir'),
         outputDir: argument('output-dir'),
         templateId: argument('template-id'),
         templateVersion: argument('template-version'),
+        manifestChecksum: argument('manifest-checksum') || process.env.MANIFEST_CHECKSUM,
+        sourceCommit: argument('source-commit') || process.env.SOURCE_COMMIT,
     });
     console.log(JSON.stringify({ bundleDigest: manifest.bundleDigest, files: manifest.files.length }));
 }

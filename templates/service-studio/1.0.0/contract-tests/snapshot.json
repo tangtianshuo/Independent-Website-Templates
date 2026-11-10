@@ -1,0 +1,309 @@
+{
+  "contractVersion": 1,
+  "schemaVersion": 1,
+  "workspaceId": "workspace-service",
+  "siteId": "site-service",
+  "language": "en",
+  "template": { "id": "service-studio", "version": "1.0.0" },
+  "pages": [
+    {
+      "path": "/",
+      "pageKey": "home",
+      "entryId": "service-home",
+      "content": {
+        "kind": "preset-page",
+        "view": "home",
+        "preset": {
+          "id": "service-studio",
+          "version": "1.0.0",
+          "name": "Clearline Studio",
+          "description": "",
+          "theme": {
+            "background": "#f5f2ea",
+            "foreground": "#17201d",
+            "accent": "#d4552d",
+            "muted": "#e5ded0",
+            "font": "Arial, sans-serif"
+          },
+          "demo": {
+            "brand": "Clearline Studio",
+            "contactEmail": "hello@clearline.example",
+            "hero": {
+              "title": "Clearline digital discovery",
+              "subtitle": "clearline-swapcard-offer-marker",
+              "image": ""
+            },
+            "page": {
+              "title": "Clearline digital discovery",
+              "body": "Focused service discovery for teams facing a material change.",
+              "image": ""
+            }
+          }
+        },
+        "sections": ["hero", "service-list"],
+        "sectionConfigs": [
+          {
+            "type": "hero",
+            "enabled": true,
+            "data": {
+              "title": "Clearline digital discovery",
+              "subtitle": "clearline-swapcard-offer-marker"
+            }
+          },
+          {
+            "type": "service-list",
+            "enabled": true,
+            "data": {
+              "heading": "What we do",
+              "intro": "Focused service discovery for teams facing a material change."
+            }
+          }
+        ],
+        "seo": {
+          "title": "Clearline Studio",
+          "description": "Service strategy and delivery."
+        },
+        "operations": { "contactFormEnabled": true }
+      }
+    },
+    {
+      "path": "/services",
+      "pageKey": "services",
+      "entryId": "service-index",
+      "content": {
+        "kind": "preset-page",
+        "view": "services",
+        "preset": {
+          "id": "service-studio",
+          "version": "1.0.0",
+          "name": "Clearline Studio",
+          "description": "",
+          "theme": {
+            "background": "#f5f2ea",
+            "foreground": "#17201d",
+            "accent": "#d4552d",
+            "muted": "#e5ded0",
+            "font": "Arial, sans-serif"
+          },
+          "demo": {
+            "brand": "Clearline Studio",
+            "hero": {
+              "title": "Services",
+              "subtitle": "Clear scope for complex change.",
+              "image": ""
+            },
+            "page": {
+              "title": "Services",
+              "body": "Clear scope for complex change.",
+              "image": ""
+            }
+          }
+        },
+        "sections": ["service-list"],
+        "sectionConfigs": [
+          {
+            "type": "service-list",
+            "enabled": true,
+            "data": {
+              "heading": "Services",
+              "intro": "Clear scope for complex change."
+            }
+          }
+        ],
+        "seo": {
+          "title": "Services",
+          "description": "Professional service offerings."
+        }
+      }
+    },
+    {
+      "path": "/services/discovery",
+      "pageKey": "service-detail",
+      "entryId": "service-discovery",
+      "content": {
+        "kind": "preset-page",
+        "view": "service",
+        "preset": {
+          "id": "service-studio",
+          "version": "1.0.0",
+          "name": "Clearline Studio",
+          "description": "",
+          "theme": {
+            "background": "#f5f2ea",
+            "foreground": "#17201d",
+            "accent": "#d4552d",
+            "muted": "#e5ded0",
+            "font": "Arial, sans-serif"
+          },
+          "demo": {
+            "brand": "Clearline Studio",
+            "hero": {
+              "title": "Digital discovery",
+              "subtitle": "Understand the problem before committing to a solution.",
+              "image": ""
+            },
+            "page": {
+              "title": "Digital discovery",
+              "body": "Understand the problem before committing to a solution.",
+              "image": ""
+            }
+          }
+        },
+        "sections": ["hero", "service-list"],
+        "sectionConfigs": [
+          {
+            "type": "hero",
+            "enabled": true,
+            "data": {
+              "title": "Digital discovery",
+              "subtitle": "Understand the problem before committing to a solution.",
+              "image": "/_assets/media/service/cover.png"
+            }
+          },
+          {
+            "type": "service-list",
+            "enabled": true,
+            "data": { "heading": "How it works" }
+          }
+        ],
+        "seo": {
+          "title": "Digital discovery",
+          "description": "A focused discovery engagement."
+        }
+      }
+    },
+    {
+      "path": "/team",
+      "pageKey": "team",
+      "entryId": "team-mina",
+      "content": {
+        "kind": "preset-page",
+        "view": "team",
+        "preset": {
+          "id": "service-studio",
+          "version": "1.0.0",
+          "name": "Clearline Studio",
+          "description": "",
+          "theme": {
+            "background": "#f5f2ea",
+            "foreground": "#17201d",
+            "accent": "#d4552d",
+            "muted": "#e5ded0",
+            "font": "Arial, sans-serif"
+          },
+          "demo": {
+            "brand": "Clearline Studio",
+            "hero": {
+              "title": "Mina Park",
+              "subtitle": "Service design lead",
+              "image": ""
+            },
+            "page": {
+              "title": "Mina Park",
+              "body": "Service design lead",
+              "image": ""
+            }
+          }
+        },
+        "sections": ["team-grid"],
+        "sectionConfigs": [
+          {
+            "type": "team-grid",
+            "enabled": true,
+            "data": { "heading": "The people behind the work" }
+          }
+        ],
+        "seo": { "title": "Team", "description": "Meet the Clearline team." }
+      }
+    },
+    {
+      "path": "/contact",
+      "pageKey": "contact",
+      "entryId": "settings-contact",
+      "content": {
+        "kind": "preset-page",
+        "view": "contact",
+        "preset": {
+          "id": "service-studio",
+          "version": "1.0.0",
+          "name": "Clearline Studio",
+          "description": "",
+          "theme": {
+            "background": "#f5f2ea",
+            "foreground": "#17201d",
+            "accent": "#d4552d",
+            "muted": "#e5ded0",
+            "font": "Arial, sans-serif"
+          },
+          "demo": {
+            "brand": "Clearline Studio",
+            "contactEmail": "hello@clearline.example",
+            "hero": { "title": "Contact", "subtitle": "", "image": "" },
+            "page": {
+              "title": "Contact",
+              "body": "clearline-contact-marker",
+              "image": ""
+            }
+          }
+        },
+        "sections": ["contact-form"],
+        "sectionConfigs": [
+          {
+            "type": "contact-form",
+            "enabled": true,
+            "data": {
+              "heading": "Bring us the problem.",
+              "email": "hello@clearline.example"
+            }
+          }
+        ],
+        "seo": {
+          "title": "Contact",
+          "description": "Start a conversation with Clearline."
+        },
+        "operations": { "contactFormEnabled": true }
+      }
+    }
+  ],
+  "navigation": [
+    {
+      "id": "nav-home",
+      "label": "Home",
+      "path": "/",
+      "enabled": true,
+      "children": []
+    },
+    {
+      "id": "nav-services",
+      "label": "Services",
+      "path": "/services",
+      "enabled": true,
+      "children": []
+    },
+    {
+      "id": "nav-team",
+      "label": "Team",
+      "path": "/team",
+      "enabled": true,
+      "children": []
+    },
+    {
+      "id": "nav-contact",
+      "label": "Contact",
+      "path": "/contact",
+      "enabled": true,
+      "children": []
+    }
+  ],
+  "redirects": [],
+  "operations": { "contactFormEnabled": true },
+  "assets": [
+    {
+      "path": "media/service/cover.png",
+      "checksum": "sha256:431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460",
+      "mimeType": "image/png",
+      "url": "/_assets/media/service/cover.png",
+      "contentBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    }
+  ]
+}

@@ -40,6 +40,10 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Install current runtime contract dependencies
+        run: |
+          npm ci --prefix templates/aeroframe/1.0.5/storefront
+          npm ci --prefix templates/fireguard/1.0.2/storefront
       - run: npm test
       - name: Validate selected manifest
         env:
@@ -62,13 +66,19 @@ jobs:
         working-directory: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront
       - run: npm run build
         working-directory: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront
+      - name: Verify selected artifact contract before available registration
+        env:
+          TEST_BUILT_CONTRACT: '1'
+        run: node --test test/contract.test.mjs test/contract/built-runtime.test.mjs
       - name: Exercise selected renderer and private preview
-        run: npm run test:runtime
+        run: npm run test:release:runtime
       - name: Build preview bundle
         env:
           PREVIEW_APP_BASE_URL: /preview/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/
           NUXT_PUBLIC_PREVIEW_ADMIN_ORIGIN: ${{ vars.CMS_ORIGIN }}
+          SOURCE_COMMIT: ${{ github.sha }}
         run: |
+          export MANIFEST_CHECKSUM="$(node --input-type=module -e 'import {readFileSync} from "node:fs"; import {canonicalChecksum} from "../../../../scripts/validate.mjs"; console.log(`sha256:${canonicalChecksum(JSON.parse(readFileSync("../template.json","utf8")))}`)')"
           npm run build:preview
           rm -rf "$RUNNER_TEMP/preview-bundle"
           node ../../../../scripts/preview-bundle.mjs \
@@ -149,7 +159,8 @@ jobs:
         env:
           DIGEST: ${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
         run: |
-          docker logout ghcr.io
+          export DOCKER_CONFIG="$RUNNER_TEMP/anonymous-docker"
+          mkdir -p "$DOCKER_CONFIG"
           for attempt in $(seq 1 60); do
             if docker pull "ghcr.io/tangtianshuo/independent-website-templates/${{ needs.metadata.outputs.template_id }}@${DIGEST}"; then
               exit 0
@@ -165,31 +176,13 @@ jobs:
           SOURCE_COMMIT: ${{ github.sha }}
           RELEASE_IMAGE: ghcr.io/tangtianshuo/independent-website-templates/${{ needs.metadata.outputs.template_id }}@${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
         run: node --test test/image.test.mjs
-      - name: Build and publish immutable preview bundle
-        env:
-          PREVIEW_APP_BASE_URL: /preview/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/
-          NUXT_PUBLIC_PREVIEW_ADMIN_ORIGIN: ${{ vars.CMS_ORIGIN }}
-        run: |
-          npm ci
-          npm run build:preview
-          rm -rf "$RUNNER_TEMP/preview-bundle"
-          node ../../../../scripts/preview-bundle.mjs \
-            --public-dir .output/public \
-            --output-dir "$RUNNER_TEMP/preview-bundle" \
-            --template-id "${{ needs.metadata.outputs.template_id }}" \
-            --template-version "${{ needs.metadata.outputs.version }}"
-          echo "bundle_digest=$(node -p "require('$RUNNER_TEMP/preview-bundle/preview-bundle.json').bundleDigest")" >> "$GITHUB_OUTPUT"
-          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner \
-            -czf "$RUNNER_TEMP/preview-bundle.tar.gz" -C "$RUNNER_TEMP/preview-bundle" .
-          bundle_repository="ghcr.io/tangtianshuo/independent-website-preview-bundles/${{ needs.metadata.outputs.template_id }}"
-          bundle_tag="${bundle_repository}:${{ needs.metadata.outputs.template_id }}-v${{ needs.metadata.outputs.version }}"
-          docker run --rm -v "$RUNNER_TEMP:/workspace" ghcr.io/oras-project/oras:v1.2.3 \
-            push "$bundle_tag" /workspace/preview-bundle.tar.gz \
-            --artifact-type application/vnd.bcms.preview.bundle.v1 \
-            --format '{{.digest}}' > "$RUNNER_TEMP/preview-digest.txt"
-          echo "artifact_digest=$(cat "$RUNNER_TEMP/preview-digest.txt")" >> "$GITHUB_OUTPUT"
+      - name: Resolve, verify or publish immutable preview bundle
         id: preview
-        working-directory: templates/${{ needs.metadata.outputs.template_id }}/${{ needs.metadata.outputs.version }}/storefront
+        env:
+          TEMPLATE_VERSION: ${{ needs.metadata.outputs.version }}
+          NUXT_PUBLIC_PREVIEW_ADMIN_ORIGIN: ${{ vars.CMS_ORIGIN }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: node scripts/preview-publication.mjs
       - name: Append immutable registry record
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -197,17 +190,8 @@ jobs:
           IMAGE_DIGEST: ${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
           PREVIEW_BUNDLE_DIGEST: ${{ steps.preview.outputs.bundle_digest }}
           PREVIEW_ARTIFACT_DIGEST: ${{ steps.preview.outputs.artifact_digest }}
-          PREVIEW_ADAPTER_VERSION: '1'
+          PREVIEW_ADAPTER_VERSION: ${{ steps.preview.outputs.adapter_version }}
           SOURCE_COMMIT: ${{ github.sha }}
         run: node scripts/release-registry.mjs
-      - name: Synchronize released template image to server
-        if: needs.metadata.outputs.template_id == 'aeroframe'
-        env:
-          IMAGE_DIGEST: ${{ steps.registry.outputs.digest || steps.tagged.outputs.digest || steps.image.outputs.digest }}
-          RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
-          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash .github/scripts/deploy.sh
+      - name: Record available candidate boundary
+        run: echo "Available registration completed. Server synchronization requires Platform release gate / platform-gate." >> "$GITHUB_STEP_SUMMARY"
